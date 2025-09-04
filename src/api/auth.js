@@ -15,6 +15,15 @@ export const checkEmailExists = async (email) => {
     }
 }
 
+export const forgotPassword = (email) =>
+    api.post("/forgotPassword", { email });
+
+export const verifyOtp = (email, otp) =>
+    api.post("/verifyOtp", { email, otp });
+
+export const updatePassword = (email, newPassword) =>
+    api.post("/updatePassword", { email, newPassword });
+
 export const login = async (data) => {
      const response = await api.post("/login", data);
      const { token } = response.data;

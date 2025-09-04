@@ -20,6 +20,20 @@ export default function Auth(){
     const location = useLocation();
     const from = location.state?.from?.pathname || "/";
 
+
+    const handleGoogleLogin = () => {
+        const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
+        const params = new URLSearchParams({
+            client_id: "941069814660-9ptr1a9jg59jj1l9rcvtb4ud16i277sl.apps.googleusercontent.com",
+            redirect_uri: "http://localhost:5173/oauth2/callback",
+            response_type: "code",
+            scope: "openid email profile",
+            access_type: "offline",
+            prompt: "consent",
+        });
+
+        window.location.href = `${googleAuthUrl}?${params.toString()}`;
+    };
     useEffect(() => {
         if (isAuthenticated()) {
             const roles = getUserRole();
@@ -48,6 +62,9 @@ export default function Auth(){
         });
     };
 
+    const handleForgotPassword = () => {
+        navigate("/forgot");
+    }
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -202,7 +219,7 @@ export default function Auth(){
                                                    placeholder="Password"
                                             />
                                             <div className="forgot">
-                                                <a href="#">Forgot?</a>
+                                                <a onClick={handleForgotPassword}>Forgot?</a>
                                             </div>
                                         </div>
                                         <div className="remember-me-btn">
@@ -229,6 +246,7 @@ export default function Auth(){
                                                     cursor: "pointer",
                                                     fontWeight: "bold"
                                                 }}
+                                                onClick={handleGoogleLogin}
                                             >
                                                 <img
                                                     src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"

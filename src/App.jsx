@@ -4,6 +4,12 @@ import HomePage from "./pages/client/HomePage.jsx";
 import AuthPage from "./pages/client/AuthPage.jsx";
 import UserPage from "./pages/client/UserPage.jsx";
 import ShopPage from "./pages/client/ShopPage.jsx";
+import CartPage from "./pages/client/CartPage.jsx";
+import GoogleCallback from "./pages/client/GoogleCallback.jsx";
+import ForgotPasswordPage from "./pages/client/ForgotPasswordPage.jsx";
+import VerifyOtpPage from "./pages/client/VerifyOtpPage.jsx";
+import ResetPasswordPage from "./pages/client/ResetPasswordPage.jsx";
+
 
 export default function App() {
   return (
@@ -17,11 +23,13 @@ export default function App() {
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/information/*" element={<UserPage />} />
           <Route path="/shop" element={<ShopPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/oauth2/callback" element={<GoogleCallback />} />
 
+          <Route path="/forgot" element={<ForgotPasswordPage />} />
+          <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           {/* <Route path="/cart" element={<CartPage />} />
-          <Route path="/user" element={<UserPage />} />
-          <Route path="/oauth2/callback" element={<GoogleCallback />} />  */}
-
 
             {/* Protected routes */}
           {/* <Route 

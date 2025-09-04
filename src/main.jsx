@@ -17,10 +17,8 @@ import {CartProvider} from "./contexts/CartContext.jsx";
 
 createRoot(document.getElementById('root')).render(
     <>
-      <StrictMode>
-          <CartProvider>
+        <CartProvider>
               <App />
-          </CartProvider>
-      </StrictMode>,
+        </CartProvider>
     </>
 )
