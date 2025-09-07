@@ -5,16 +5,6 @@ const API_URL = "/v1/auth";
 
 const api = createApiInstance(API_URL);
 
-export const checkEmailExists = async (email) => {
-    try {
-        const response = await api.get(`/getUserByEmail/${email}`);
-        return response.data;
-    } catch (error) {
-        console.error("Error checking email existence:", error);
-        return false;
-    }
-}
-
 export const forgotPassword = (email) =>
     api.post("/forgotPassword", { email });
 

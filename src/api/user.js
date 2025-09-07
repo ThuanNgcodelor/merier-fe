@@ -16,11 +16,45 @@ export const getCart = async () => {
 export const getUser = async () => {
     try {
         const response = await api.get("/information");
+        console.log("User data:", response.data);   
         return response.data;
     } catch {
         throw new Error("Failed to fetch user data");
     }
 }
+
+export const checkEmailExists = async (email) => {
+    const res = await api.get(`/getUserByEmail/${encodeURIComponent(email)}`, {
+      validateStatus: (s) => s === 200 || s === 404,
+    });
+    return res.status === 200; 
+};
+
+// Update user information
+export const updateUser = async (data, file) => {
+  const fd = new FormData();
+
+  fd.append(
+    "request",
+    new Blob([JSON.stringify(data)], { type: "application/json" }),
+    "request.json" 
+  );
+
+  if (file) fd.append("file", file); 
+
+  const response = await api.put("/update", fd, {
+    transformRequest: [(payload, headers) => {
+      delete headers.common?.["Content-Type"];
+      delete headers.post?.["Content-Type"];
+      delete headers.put?.["Content-Type"];
+      delete headers["Content-Type"];
+      return payload;
+    }],
+  });
+  return response.data;
+};
+
+// Address APIs
 
 export const updateAddress = async (data) => {
     try {
@@ -76,4 +110,5 @@ export const setDefaultAddress = async (id) => {
         throw new Error("Failed to set default address");
     }
 }
+// Address APIs
 

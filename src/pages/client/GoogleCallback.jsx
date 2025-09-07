@@ -61,7 +61,7 @@ const GoogleCallback = () => {
         }
     }, [navigate]);
 
-    return <div>Logger in with Google...</div>;
+    return <div>Logging in with Google...</div>;
 };
 
 export default GoogleCallback;

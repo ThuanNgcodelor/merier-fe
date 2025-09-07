@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
-import {checkEmailExists, getUserRole, isAuthenticated, login, register} from "../../api/auth.js";
+import {getUserRole, isAuthenticated, login, register} from "../../api/auth.js";
+import {checkEmailExists} from "../../api/user.js";
 
 export default function Auth(){
     const [loginData, setLoginData] = useState({
@@ -24,7 +25,7 @@ export default function Auth(){
     const handleGoogleLogin = () => {
         const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
         const params = new URLSearchParams({
-            client_id: "941069814660-9ptr1a9jg59jj1l9rcvtb4ud16i277sl.apps.googleusercontent.com",
+            client_id: "941069814660-or8vut20mcc30h2lp3lgdrfqd48j4qkc.apps.googleusercontent.com",
             redirect_uri: "http://localhost:5173/oauth2/callback",
             response_type: "code",
             scope: "openid email profile",
@@ -65,6 +66,7 @@ export default function Auth(){
     const handleForgotPassword = () => {
         navigate("/forgot");
     }
+
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setError('');
@@ -98,40 +100,39 @@ export default function Auth(){
         setError("");
         setSuccess("");
 
-        if(registerData.password !== registerData.confirmPassword) {
+        if (registerData.password !== registerData.confirmPassword) {
             setError("Passwords do not match.");
             return;
         }
-        
-        if(registerData.password.length < 6) {
+        if (registerData.password.length < 6) {
             setError("Password must be at least 6 characters.");
-            return; 
+            return;
         }
 
         setLoading(true);
-
         try {
             const exists = await checkEmailExists(registerData.email);
             if (exists) {
-                setError("Email already exists. Please use a different email.");
-                setLoading(false);
-                return;
+            setError("Email already exists. Please use a different email.");
+            return;
             }
 
             await register(registerData);
             setSuccess("Registration successful! You can now login.");
-            setRegisterData({
-                username: "",
-                email: "",
-                password: "",
-                confirmPassword: "",
-            });
+            setRegisterData({ username: "", email: "", password: "", confirmPassword: "" });
         } catch (err) {
-            setError(err.response?.data?.message || "Register error. Please check your registration information.");
+            const apiMsg =
+            err?.response?.data?.message ||
+            err?.response?.data?.error ||
+            err?.message;
+            setError(apiMsg || "Register error. Please check your registration information.");
         } finally {
             setLoading(false);
         }
-    }
+    };
+
+
+
 
     return (
         <>
