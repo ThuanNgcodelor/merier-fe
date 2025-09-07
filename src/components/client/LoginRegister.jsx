@@ -40,7 +40,7 @@ export default function Auth(){
             const roles = getUserRole();
 
             if (Array.isArray(roles)) {
-                if (roles.includes("ROLE_ADMIN")) {
+                if (roles.includes("ROLE_ADMIN") || roles.includes("ROLE_DESIGNER")) {
                     navigate("/admin");
                 } else if (roles.includes("ROLE_USER")) {
                     navigate("/information");
@@ -79,10 +79,11 @@ export default function Auth(){
         try {
             await login(loginData);
             const role = getUserRole();
+            const roles = Array.isArray(role) ? role : [role].filter(Boolean);
 
-            if(role.includes("ROLE_ADMIN")) {
+            if(roles.includes("ROLE_ADMIN") || roles.includes("ROLE_DESIGNER")) {
                 navigate("/admin");
-            } else if (role.includes("ROLE_USER")) {
+            } else if (roles.includes("ROLE_USER")) {
                 navigate("/information");
             }
 

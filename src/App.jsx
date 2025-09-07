@@ -9,7 +9,10 @@ import GoogleCallback from "./pages/client/GoogleCallback.jsx";
 import ForgotPasswordPage from "./pages/client/ForgotPasswordPage.jsx";
 import VerifyOtpPage from "./pages/client/VerifyOtpPage.jsx";
 import ResetPasswordPage from "./pages/client/ResetPasswordPage.jsx";
-
+import AdminLayout from "./components/admin/AdminLayout.jsx";
+import ProtectedRoute from "./components/admin/ProtectedRoute.jsx";
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
+import DataTablesPage from "./pages/admin/DataTablesPage.jsx";
 
 export default function App() {
   return (
@@ -29,25 +32,19 @@ export default function App() {
           <Route path="/forgot" element={<ForgotPasswordPage />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          {/* <Route path="/cart" element={<CartPage />} />
-
-            {/* Protected routes */}
-          {/* <Route 
-            path="/admin" 
+          
+          {/* Admin routes */}
+          <Route
+            path="/admin/*"
             element={
-              <ProtectedRoute requiredRole="ROLE_ADMIN">
-                <AdminPage />
+              <ProtectedRoute allowedRoles={["ROLE_ADMIN", "ROLE_DESIGNER"]}>
+                <AdminLayout />
               </ProtectedRoute>
-            } 
-          /> */}
-          {/* <Route 
-            path="/user" 
-            element={
-              <ProtectedRoute requiredRole="ROLE_USER">
-                <UserPage />
-              </ProtectedRoute>
-            } 
-          /> */}
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="tables/datatables" element={<DataTablesPage />} />
+          </Route>
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
