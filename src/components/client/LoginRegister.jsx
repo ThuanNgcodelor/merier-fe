@@ -40,10 +40,14 @@ export default function Auth(){
             const roles = getUserRole();
 
             if (Array.isArray(roles)) {
-                if (roles.includes("ROLE_ADMIN") || roles.includes("ROLE_DESIGNER")) {
+                if (roles.includes("ROLE_ADMIN")) {
                     navigate("/admin");
                 } else if (roles.includes("ROLE_USER")) {
                     navigate("/information");
+                }else if ( roles.includes("ROLE_VET")){
+                    navigate("/vet")
+                }else if ( roles.includes("ROLE_SHELTER")){
+                    navigate("/shelter")
                 }
             }
         }
@@ -234,7 +238,7 @@ export default function Auth(){
                                             </button>
                                         </div>
                                         <br/>
-                                        <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
+                                        <div style={{ display: "flex", gap: "20px", marginBottom: "20px" }}>
                                             <button
                                                 type="button"
                                                 style={{
@@ -244,7 +248,7 @@ export default function Auth(){
                                                     color: "#444",
                                                     border: "1px solid #ddd",
                                                     borderRadius: "4px",
-                                                    padding: "8px 18px",
+                                                    padding: "8px 113px",
                                                     cursor: "pointer",
                                                     fontWeight: "bold"
                                                 }}
@@ -253,33 +257,11 @@ export default function Auth(){
                                                 <img
                                                     src="https://upload.wikimedia.org/wikipedia/commons/4/4a/Logo_2013_Google.png"
                                                     alt="Google"
-                                                    style={{ width: 26, height: 14, marginRight: 19 }}
+                                                    style={{ width: 26, height: 10, marginRight: 10 }}
                                                 />
                                                 Google Login
                                             </button>
 
-                                            <button
-                                                type="button"
-                                                style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    backgroundColor: "#4267B2",
-                                                    color: "white",
-                                                    border: "none",
-                                                    borderRadius: "4px",
-                                                    padding: "8px 18px",
-                                                    cursor: "pointer",
-                                                    fontWeight: "bold"
-                                                }}
-                                                onClick={() => window.location.href = "/api/auth/facebook"}
-                                            >
-                                                <img
-                                                    src="https://upload.wikimedia.org/wikipedia/commons/0/05/Facebook_Logo_%282019%29.png"
-                                                    alt="Facebook"
-                                                    style={{ width: 12, height: 14, marginRight: 19 }}
-                                                />
-                                                Facebook Login
-                                            </button>
 
                                         </div>
                                     </form>

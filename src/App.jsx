@@ -13,7 +13,21 @@ import AdminLayout from "./components/admin/AdminLayout.jsx";
 import ProtectedRoute from "./components/admin/ProtectedRoute.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import DataTablesPage from "./pages/admin/DataTablesPage.jsx";
-
+import VetPortal from "./pages/vet/VetPortal.jsx";
+import VetDashboard from "./pages/vet/VetDashboard.jsx";
+import VetAppointments from "./pages/vet/VetAppointments.jsx";
+import VetHealthRecords from "./pages/vet/VetHealthRecords.jsx";
+import VetArticles from "./pages/vet/VetArticles.jsx";
+import VetProfile from "./pages/vet/VetProfile.jsx";
+import ChartAdmin from "./pages/admin/ChartAdmin.jsx";
+import OrdersPage from "./pages/admin/OrdersPage.jsx";
+import CategoriesPage from "./pages/admin/CategoriesPage.jsx";
+import RolesPage from "./pages/admin/RolesPage.jsx";
+import ShelterPage from "./pages/shelter/ShelterPage.jsx";
+import PetManagementPage from "./pages/shelter/PetManagementPage.jsx";
+import ShelterManagementPage from "./pages/shelter/ShelterManagementPage.jsx";
+import ShelterLayout from "./components/shelter/ShelterLayout.jsx";
+import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";                                                                                                {/* Shelter routes */}
 export default function App() {
   return (
     <HelmetProvider>
@@ -37,14 +51,50 @@ export default function App() {
           <Route
             path="/admin/*"
             element={
-              <ProtectedRoute allowedRoles={["ROLE_ADMIN", "ROLE_DESIGNER"]}>
+              <ProtectedRoute allowedRoles={["ROLE_ADMIN"]}>
                 <AdminLayout />
               </ProtectedRoute>
             }
           >
             <Route index element={<AdminDashboard />} />
             <Route path="tables/datatables" element={<DataTablesPage />} />
+            <Route path="orders" element={<OrdersPage />} />
+            <Route path="categories" element={<CategoriesPage />} />
+            <Route path="role-request" element={<RolesPage />} />
+            <Route path="charts" element={<ChartAdmin />} />
           </Route>
+          {/* Vet routes */}
+          <Route
+            path="/vet/*"
+            element={
+              <ProtectedRoute allowedRoles={["ROLE_VET"]}>
+                <VetPortal />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<VetDashboard />} />
+            <Route path="appointments" element={<VetAppointments />} />
+            <Route path="records" element={<VetHealthRecords />} />
+            <Route path="articles" element={<VetArticles />} />
+            <Route path="profile" element={<VetProfile />} />
+          </Route>
+
+          {/* Shelter routes */}
+          <Route
+            path="/shelter/*"
+            element={
+              <ProtectedRoute allowedRoles={["ROLE_SHELTER"]}>
+                <ShelterLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<ShelterPage />} />
+            <Route path="pets" element={<PetManagementPage />} />
+            <Route path="adoption-requests" element={<AdoptionRequestsPage />} />
+            <Route path="manage" element={<ShelterManagementPage />} />
+          </Route>
+
+
           
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

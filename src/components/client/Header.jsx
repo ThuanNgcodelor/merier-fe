@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import {useEffect, useState} from "react";
 import {useCart} from "../../contexts/CartContext.jsx";
 import {getCart} from "../../api/user.js";
+import { getUserRole, isAuthenticated, logout } from "../../api/auth.js";
 
 export default function Header() {
     const  navigate = useNavigate();
@@ -18,6 +19,15 @@ export default function Header() {
         navigate('/cart');
     }
     const token = Cookies.get("accessToken");
+
+    const [roles, setRoles] = useState([]);
+    const authed = isAuthenticated();
+
+    useEffect(() => {
+        const r = getUserRole();
+        const list = Array.isArray(r) ? r : (r ? [r] : []);
+        setRoles(list);
+    }, [token]);
 
     useEffect(() => {
         if(!token){
@@ -40,6 +50,17 @@ export default function Header() {
         fetchTotalCart();
     }, [token, setCart]);
 
+    const hasRole = (role) => roles.includes(role);
+
+    const goAccount = () => navigate('/information');
+    const goVet = () => navigate('/vet');
+    const goShelter = () => navigate('/shelter');
+    const goAdmin = () => navigate('/admin');
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    }
 
     return (
         <header className="header-area">
@@ -125,15 +146,71 @@ export default function Header() {
                                 </button>
                             </form>
 
-                            <button className="header-action-cart" type="button" data-bs-toggle="offcanvas"
-                                    data-bs-target="#offcanvasWithCartSidebar"
-                                    aria-controls="offcanvasWithCartSidebar"
-                                    onClick={handleLoginClick}
-                            > Login
-                                <span className="cart-icon">
-                                </span>
-                            </button>
+                            {!authed && (
+                                <button className="header-action-cart" type="button" data-bs-toggle="offcanvas"
+                                        data-bs-target="#offcanvasWithCartSidebar"
+                                        aria-controls="offcanvasWithCartSidebar"
+                                        onClick={handleLoginClick}
+                                > Login
+                                    <span className="cart-icon">
+                                    </span>
+                                </button>
+                            )}
 
+                            {authed && (
+                                <>
+                                    <button className="header-action-cart" type="button"
+                                            data-bs-toggle="offcanvas"
+                                            data-bs-target="#offcanvasWithCartSidebar"
+                                            aria-controls="offcanvasWithCartSidebar"
+                                            onClick={goAccount}>
+                                        My Account
+                                        <span className="cart-icon"></span>
+                                    </button>
+
+                                    {hasRole("ROLE_VET") && (
+                                        <button className="header-action-cart" type="button"
+                                                data-bs-toggle="offcanvas"
+                                                data-bs-target="#offcanvasWithCartSidebar"
+                                                aria-controls="offcanvasWithCartSidebar"
+                                                onClick={goVet}>
+                                            Vet Portal
+                                            <span className="cart-icon"></span>
+                                        </button>
+                                    )}
+
+                                    {hasRole("ROLE_SHELTER") && (
+                                        <button className="header-action-cart" type="button"
+                                                data-bs-toggle="offcanvas"
+                                                data-bs-target="#offcanvasWithCartSidebar"
+                                                aria-controls="offcanvasWithCartSidebar"
+                                                onClick={goShelter}>
+                                            Shelter
+                                            <span className="cart-icon"></span>
+                                        </button>
+                                    )}
+
+                                    {hasRole("ROLE_ADMIN") && (
+                                        <button className="header-action-cart" type="button"
+                                                data-bs-toggle="offcanvas"
+                                                data-bs-target="#offcanvasWithCartSidebar"
+                                                aria-controls="offcanvasWithCartSidebar"
+                                                onClick={goAdmin}>
+                                            Admin
+                                            <span className="cart-icon"></span>
+                                        </button>
+                                    )}
+
+                                    <button className="header-action-cart" type="button"
+                                            data-bs-toggle="offcanvas"
+                                            data-bs-target="#offcanvasWithCartSidebar"
+                                            aria-controls="offcanvasWithCartSidebar"
+                                            onClick={handleLogout}>
+                                        Logout
+                                        <span className="cart-icon"></span>
+                                    </button>
+                                </>
+                            )}
 
                             <button className="header-action-cart" type="button" data-bs-toggle="offcanvas"
                                 data-bs-target="#offcanvasWithCartSidebar"
@@ -146,13 +223,10 @@ export default function Header() {
                                 </span>
                             </button>
 
-
                             <button className="btn-search-menu d-md-none" type="button" data-bs-toggle="offcanvas"
                                 data-bs-target="#AsideOffcanvasSearch" aria-controls="AsideOffcanvasSearch">
                                 <span className="search-icon">
-                                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M12.5 11H11.71L11.43 10.73C12.41 9.59 13 8.11 13 6.5C13 2.91 10.09 0 6.5 0C2.91 0 0 2.91 0 6.5C0 10.09 2.91 13 6.5 13C8.11 13 9.59 12.41 10.73 11.43L11 11.71V12.5L16 17.49L17.49 16L12.5 11ZM6.5 11C4.01 11 2 8.99 2 6.5C2 4.01 4.01 2 6.5 2C8.99 2 11 4.01 11 6.5C11 8.99 8.99 11 6.5 11Z"/>
-                                    </svg>
                                 </span>
                             </button>
 

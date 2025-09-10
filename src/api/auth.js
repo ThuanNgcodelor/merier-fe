@@ -36,19 +36,31 @@ export const logout = () => {
 
 export const getUserRole = () => {
     const token = getToken();
-    if (!token) return null;
+    if (!token) return [];
 
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
 
+        let roles = [];
         if (Array.isArray(payload.roles)) {
-            return payload.roles;
+            roles = payload.roles;
+        } else if (Array.isArray(payload.authorities)) {
+            roles = payload.authorities;
+        } else if (payload.role) {
+            roles = [payload.role];
         }
 
-        return payload.role || payload.authorities?.[0] || payload.iss || null;
+        const normalized = [...new Set(
+            roles
+                .filter(Boolean)
+                .map(String)
+                .map(r => r.startsWith('ROLE_') ? r : `ROLE_${r.toUpperCase()}`)
+        )];
+
+        return normalized;
     } catch (error) {
         console.error("Error decoding token:", error);
-        return null;
+        return [];
     }
 };
 

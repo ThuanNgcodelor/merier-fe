@@ -110,5 +110,27 @@ export const setDefaultAddress = async (id) => {
         throw new Error("Failed to set default address");
     }
 }
+
+// Role Request APIs
+export const createRoleRequest = async (data) => {
+    try {
+        const response = await api.post("/role-requests", data);
+        return response.data;
+    } catch (error) {
+        console.error("Error creating role request:", error);
+        throw new Error("Failed to create role request");
+    }
+}
+
+export const getUserRoleRequests = async () => {
+    try {
+        const response = await api.get("/role-requests/user");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching user role requests:", error);
+        throw new Error("Failed to fetch user role requests");
+    }
+}
+
 // Address APIs
 
