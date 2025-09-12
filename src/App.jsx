@@ -29,6 +29,7 @@ import ShelterLayout from "./components/shelter/ShelterLayout.jsx";
 import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";
 import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 import VetFinderPage from "./pages/client/VetFinderPage.jsx"
+import AdoptionListing from "./pages/client/AdoptionListing.jsx";
 
 export default function App() {
   return (
@@ -48,7 +49,8 @@ export default function App() {
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/vets" element={<VetFinderPage />} />
-          
+          <Route path="/adoption" element={<AdoptionListing />} />
+
           {/* Admin routes */}
           <Route
             path="/admin/*"
@@ -93,6 +95,7 @@ export default function App() {
           >
             <Route index element={<ShelterPage />} />
             <Route path="pets" element={<PetManagementPage />} />
+            <Route path="pet/my" element={<Navigate to="/shelter/pets" replace />} />
             <Route path="adoption-requests" element={<AdoptionRequestsPage />} />
             <Route path="manage" element={<ShelterManagementPage />} />
           </Route>

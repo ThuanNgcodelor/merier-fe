@@ -16,7 +16,6 @@ export default function Header() {
 
   const [roles, setRoles] = useState([]);
   const authed = isAuthenticated();
-
   const [mobileOpen, setMobileOpen] = useState(false);
   const openMobile = useCallback(() => setMobileOpen(true), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
@@ -56,7 +55,6 @@ export default function Header() {
   const goAdmin = () => { closeMobile(); navigate("/admin"); };
   const handleLoginClick = () => { closeMobile(); navigate("/login"); };
   const handleGoToCart = () => { closeMobile(); navigate("/cart"); };
-  // const handleLogout = () => { logout(); closeMobile(); navigate("/login"); };
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -97,13 +95,11 @@ export default function Header() {
           {/* Desktop nav */}
           <div className="col d-none d-lg-block">
             <div className="d-flex align-items-center">
-              {/* Menu trái – chiếm toàn bộ phần còn lại */}
               <ul
                 className="main-nav d-flex align-items-center justify-content-evenly flex-grow-1 mb-0"
                 style={{ listStyle: 'none', paddingLeft: 0 }}
               >
-                <li><NavLink to="/">Home</NavLink></li>
-                <li><Link to="/shop">Shop</Link></li>
+                <li><Link to="/adoption">Adoption</Link></li>
 
                 {!authed ? (
                   <li><Link to="/login" onClick={handleLoginClick}>Login</Link></li>
@@ -117,7 +113,6 @@ export default function Header() {
                 )}
               </ul>
 
-              {/* === Search trước, Cart sau (đổi vị trí theo yêu cầu) === */}
               <form className="header-search-box d-none d-md-block me-2" onSubmit={(e) => e.preventDefault()}>
                 <input className="form-control" type="text" id="search" placeholder="Search" />
                 <button type="submit" className="btn-src" aria-label="Search">
@@ -125,7 +120,6 @@ export default function Header() {
                 </button>
               </form>
 
-              {/* Cart icon + badge (bên phải nhất) */}
               <Link
                 to="/cart"
                 onClick={handleGoToCart}
@@ -171,7 +165,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
           onClick={closeMobile}
@@ -180,7 +173,6 @@ export default function Header() {
         />
       )}
 
-      {/* Mobile drawer */}
       <aside
         id="mobile-drawer"
         className="d-lg-none"
@@ -206,7 +198,6 @@ export default function Header() {
           <button className="btn-close" aria-label="Close" onClick={closeMobile} />
         </div>
 
-        {/* Search in drawer */}
         <div style={{ padding: "12px 16px 0" }}>
           <form className="d-flex" onSubmit={(e) => e.preventDefault()}>
             <input className="form-control" type="text" placeholder="Search" style={{ height: 36, fontSize: 14 }} />
@@ -220,6 +211,7 @@ export default function Header() {
           <ul className="list-unstyled d-grid gap-3" style={{ marginBottom: 16 }}>
             <li><Link to="/" onClick={closeMobile}>Home</Link></li>
             <li><Link to="/shop" onClick={closeMobile}>Shop</Link></li>
+            <li><NavLink to="/adoption" onClick={closeMobile}>Adoption</NavLink></li>
 
             {!authed ? (
               <li><Link to="/login" onClick={handleLoginClick}>Login</Link></li>
@@ -231,7 +223,6 @@ export default function Header() {
                 {hasRole("ROLE_ADMIN") && <li><Link to="/admin" onClick={goAdmin}>Admin</Link></li>}
               </>
             )}
-
             <li>
               <Link
                 to="/cart"

@@ -44,7 +44,6 @@ export default function ChatBotWidget() {
         : "";
       return `**${best.question}**\n${best.answer}\n\n_Category: ${best.category}._${relBlock}`;
     }
-    // fallback rules
     const t = q.toLowerCase();
     if (/(book|appointment|đặt lịch|schedule)/.test(t)) {
       return "You can book a vet in the **Nearby Vets** section on the homepage. Pick a doctor and press **Book**. Need a link? → **/vet**";
@@ -72,7 +71,6 @@ export default function ChatBotWidget() {
 
   function quickAsk(q) {
     setInput(q);
-    // tự gửi luôn
     setTimeout(() => {
       const fakeEvent = { preventDefault: () => {} };
       onSend(fakeEvent);
@@ -184,7 +182,6 @@ export default function ChatBotWidget() {
 }
 
 function MessageBubble({ role, text }) {
-  // simple markdown for **bold** and _italic_
   const html = text
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/_(.+?)_/g, "<em>$1</em>")
