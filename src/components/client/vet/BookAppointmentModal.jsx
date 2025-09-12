@@ -56,7 +56,7 @@ export default function BookAppointmentModal({ isOpen, onClose, vet }) {
         try {
             await createAppointment({
                 petId: form.petId,
-                vetId: vet?.userId || vet?.id || vet?.userID,
+                vetId: vet?.userId, // Backend uses userId as the primary ID for vets
                 startTime: start.toISOString(),
                 endTime: end.toISOString(),
                 reason: form.reason?.trim() || "Vet appointment",
@@ -81,7 +81,7 @@ export default function BookAppointmentModal({ isOpen, onClose, vet }) {
             <div className="modal-dialog">
                 <div className="modal-content">
                     <div className="modal-header">
-                        <h5 className="modal-title">Book appointment {vet?.name ? `with ${vet.name}` : ""}</h5>
+                        <h5 className="modal-title">Book appointment {vet?.specialization ? `with ${vet.specialization}` : ""}</h5>
                         <button type="button" className="close" onClick={() => { reset(); onClose?.(); }}>
                             <span>×</span>
                         </button>

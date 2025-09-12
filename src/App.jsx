@@ -28,12 +28,14 @@ import ShelterManagementPage from "./pages/shelter/ShelterManagementPage.jsx";
 import ShelterLayout from "./components/shelter/ShelterLayout.jsx";
 import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";
 import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
+import VetFinderPage from "./pages/client/VetFinderPage.jsx"
+
 export default function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomePage />} /> 
           <Route path="/login" element={<AuthPage />} />
           <Route path="/register" element={<AuthPage />} />
           <Route path="/auth" element={<AuthPage />} />
@@ -45,6 +47,7 @@ export default function App() {
           <Route path="/forgot" element={<ForgotPasswordPage />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/vets" element={<VetFinderPage />} />
           
           {/* Admin routes */}
           <Route

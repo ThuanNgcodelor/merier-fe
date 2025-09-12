@@ -52,7 +52,7 @@ export default function AdoptionPage() {
             <div className="row">
               <div className="col-md-6 mb-3">
                 <label className="form-label">Pet Name</label>
-                <input {...register('pet_name')} className="form-control" placeholder="Pet Name" required />
+                <input {...register('pet_name')} className="form-control" placeholder="Select Pet" required />
               </div>
               <div className="col-md-6 mb-3">
                 <label className="form-label">Species</label>

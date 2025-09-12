@@ -8,3 +8,4 @@ const api = createApiInstance(API_URL);
 // payload: { petId, vetId, startTime, endTime, reason }
 export const createAppointment = (payload) =>
   api.post("/appointments", payload).then((r) => r.data);
+

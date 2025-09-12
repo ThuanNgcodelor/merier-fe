@@ -23,12 +23,30 @@ const createApiInstance = (baseURL) => {
         }
     );
 
+    const PUBLIC_401_ALLOWLIST = [
+        "/user/vets/getAllVet",
+        "/user/vets/search",
+    ];
+
     api.interceptors.response.use(
         (response) => response,
         (error) => {
-            if (error.response?.status === 401) {
+            const status = error?.response?.status;
+            if (status === 401) {
+                const reqUrl = error?.config?.url || "";
+                const isPublicEndpoint = PUBLIC_401_ALLOWLIST.some((p) => reqUrl.includes(p));
+                const onAuthPage = ["/login", "/register", "/auth"].some((p) => window.location.pathname.startsWith(p));
+
+                // Nếu là endpoint công khai (ví dụ: danh sách bác sĩ thú y) thì không auto-redirect
+                if (isPublicEndpoint || onAuthPage) {
+                    return Promise.reject(error);
+                }
+
+                // Với các endpoint yêu cầu đăng nhập thì mới chuyển hướng
                 Cookies.remove("accessToken");
-                window.location.href = "/login";
+                const current = window.location.pathname + window.location.search;
+                window.location.href = `/login?from=${encodeURIComponent(current)}`;
+                return; // stop further promise chain (navigation happens)
             }
             return Promise.reject(error);
         }
