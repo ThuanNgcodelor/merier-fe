@@ -1,26 +1,50 @@
-import React, { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { deleteUserById, getAllUser, updateUser } from "../../api/user";
 
 const DataTablesPage = () => {
+  const [users, setUsers] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({
+    id: "",
+    email: "",
+    lastName: "",
+    firstName: "",
+    username: "",
+    phoneNumber: "",
+  });
+
+  const [file, setFile] = useState(null);
   useEffect(() => {
+    (async () => {
+      try {
+        const data = await getAllUser();
+        console.log(data);
+        setUsers(data);
+      } catch (e) {
+        console.log(e);
+      }
+    })();
     // Initialize DataTable when component mounts
     const initializeDataTable = () => {
       if (window.$ && window.$.fn.DataTable) {
-        window.$('#dataTableHover').DataTable();
+        window.$("#dataTableHover").DataTable();
       }
     };
 
     // Load jQuery and DataTables if not already loaded
     const loadScripts = () => {
       if (!window.$) {
-        const jqueryScript = document.createElement('script');
-        jqueryScript.src = '/src/assets/admin/vendor/jquery/jquery.min.js';
+        const jqueryScript = document.createElement("script");
+        jqueryScript.src = "/src/assets/admin/vendor/jquery/jquery.min.js";
         jqueryScript.onload = () => {
-          const datatablesScript = document.createElement('script');
-          datatablesScript.src = '/src/assets/admin/vendor/datatables/jquery.dataTables.min.js';
+          const datatablesScript = document.createElement("script");
+          datatablesScript.src =
+            "/src/assets/admin/vendor/datatables/jquery.dataTables.min.js";
           datatablesScript.onload = () => {
-            const bootstrapDatatablesScript = document.createElement('script');
-            bootstrapDatatablesScript.src = '/src/assets/admin/vendor/datatables/dataTables.bootstrap4.min.js';
+            const bootstrapDatatablesScript = document.createElement("script");
+            bootstrapDatatablesScript.src =
+              "/src/assets/admin/vendor/datatables/dataTables.bootstrap4.min.js";
             bootstrapDatatablesScript.onload = initializeDataTable;
             document.head.appendChild(bootstrapDatatablesScript);
           };
@@ -37,204 +61,203 @@ const DataTablesPage = () => {
     // Cleanup function
     return () => {
       if (window.$ && window.$.fn.DataTable) {
-        window.$('#dataTableHover').DataTable().destroy();
+        window.$("#dataTableHover").DataTable().destroy();
       }
     };
   }, []);
+  const handleEdit = (user) => {
+    setEditing(user.id);
+    setForm({
+      id: user.id,
+      email: user.email, // chỉ hiển thị, không cho sửa
+      lastName: user.lastName,
+      firstName: user.firstName,
+      username: user.username,
+      phoneNumber: user.phoneNumber,
+    });
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteUserById(id);
+      // Cập nhật state: loại bỏ user có id vừa xóa
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch (err) {
+      console.error("Xóa thất bại:", err);
+    }
+  };
+  const handleSave = async () => {
+    try {
+      const payload = {
+        id: form.id,
+        lastName: form.lastName,
+        firstName: form.firstName,
+        username: form.username,
+        phoneNumber: form.phoneNumber,
+        email: form.email,
+      };
+      setFile(null);
+      const updated = await updateUser(payload, file);
+      setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+      setEditing(null);
+      alert("Cập nhật thành công!");
+    } catch (err) {
+      console.error("Update error:", err);
+    }
+  };
 
   return (
     <div className="container-fluid" id="container-wrapper">
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 className="h3 mb-0 text-gray-800">DataTables</h1>
         <ol className="breadcrumb">
-          <li className="breadcrumb-item"><Link to="/admin">Home</Link></li>
+          <li className="breadcrumb-item">
+            <Link to="/admin">Home</Link>
+          </li>
           <li className="breadcrumb-item">Tables</li>
-          <li className="breadcrumb-item active" aria-current="page">DataTables</li>
+          <li className="breadcrumb-item active" aria-current="page">
+            DataTables
+          </li>
         </ol>
       </div>
 
-      {/* Row */}
       <div className="row">
-        {/* DataTable with Hover */}
         <div className="col-lg-12">
           <div className="card mb-4">
             <div className="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-              <h6 className="m-0 font-weight-bold text-primary">DataTables with Hover</h6>
+              <h6 className="m-0 font-weight-bold text-primary">
+                DataTables with Hover
+              </h6>
             </div>
             <div className="table-responsive p-3">
-              <table className="table align-items-center table-flush table-hover" id="dataTableHover">
+              <table
+                className="table align-items-center table-flush table-hover"
+                id="dataTableHover"
+              >
                 <thead className="thead-light">
                   <tr>
-                    <th>Name</th>
-                    <th>Position</th>
-                    <th>Office</th>
-                    <th>Age</th>
-                    <th>Start date</th>
-                    <th>Salary</th>
+                    <th>Email</th>
+                    <th>Last Name</th>
+                    <th>First Name</th>
+                    <th>Username</th>
+                    <th>Phone Number</th>
+                    <th>Phone Number</th>
                   </tr>
                 </thead>
-                <tfoot>
-                  <tr>
-                    <th>Name</th>
-                    <th>Position</th>
-                    <th>Office</th>
-                    <th>Age</th>
-                    <th>Start date</th>
-                    <th>Salary</th>
-                  </tr>
-                </tfoot>
                 <tbody>
-                  <tr>
-                    <td>Tiger Nixon</td>
-                    <td>System Architect</td>
-                    <td>Edinburgh</td>
-                    <td>61</td>
-                    <td>2011/04/25</td>
-                    <td>$320,800</td>
-                  </tr>
-                  <tr>
-                    <td>Garrett Winters</td>
-                    <td>Accountant</td>
-                    <td>Tokyo</td>
-                    <td>63</td>
-                    <td>2011/07/25</td>
-                    <td>$170,750</td>
-                  </tr>
-                  <tr>
-                    <td>Ashton Cox</td>
-                    <td>Junior Technical Author</td>
-                    <td>San Francisco</td>
-                    <td>66</td>
-                    <td>2009/01/12</td>
-                    <td>$86,000</td>
-                  </tr>
-                  <tr>
-                    <td>Cedric Kelly</td>
-                    <td>Senior Javascript Developer</td>
-                    <td>Edinburgh</td>
-                    <td>22</td>
-                    <td>2012/03/29</td>
-                    <td>$433,060</td>
-                  </tr>
-                  <tr>
-                    <td>Airi Satou</td>
-                    <td>Accountant</td>
-                    <td>Tokyo</td>
-                    <td>33</td>
-                    <td>2008/11/28</td>
-                    <td>$162,700</td>
-                  </tr>
-                  <tr>
-                    <td>Brielle Williamson</td>
-                    <td>Integration Specialist</td>
-                    <td>New York</td>
-                    <td>61</td>
-                    <td>2012/12/02</td>
-                    <td>$372,000</td>
-                  </tr>
-                  <tr>
-                    <td>Herrod Chandler</td>
-                    <td>Sales Assistant</td>
-                    <td>San Francisco</td>
-                    <td>59</td>
-                    <td>2012/08/06</td>
-                    <td>$137,500</td>
-                  </tr>
-                  <tr>
-                    <td>Rhona Davidson</td>
-                    <td>Integration Specialist</td>
-                    <td>Tokyo</td>
-                    <td>55</td>
-                    <td>2010/10/14</td>
-                    <td>$327,900</td>
-                  </tr>
-                  <tr>
-                    <td>Colleen Hurst</td>
-                    <td>Javascript Developer</td>
-                    <td>San Francisco</td>
-                    <td>39</td>
-                    <td>2009/09/15</td>
-                    <td>$205,500</td>
-                  </tr>
-                  <tr>
-                    <td>Sonya Frost</td>
-                    <td>Software Engineer</td>
-                    <td>Edinburgh</td>
-                    <td>23</td>
-                    <td>2008/12/13</td>
-                    <td>$103,600</td>
-                  </tr>
-                  <tr>
-                    <td>Jena Gaines</td>
-                    <td>Office Manager</td>
-                    <td>London</td>
-                    <td>30</td>
-                    <td>2008/12/19</td>
-                    <td>$90,560</td>
-                  </tr>
-                  <tr>
-                    <td>Quinn Flynn</td>
-                    <td>Support Lead</td>
-                    <td>Edinburgh</td>
-                    <td>22</td>
-                    <td>2013/03/03</td>
-                    <td>$342,000</td>
-                  </tr>
-                  <tr>
-                    <td>Charde Marshall</td>
-                    <td>Regional Director</td>
-                    <td>San Francisco</td>
-                    <td>36</td>
-                    <td>2008/10/16</td>
-                    <td>$470,600</td>
-                  </tr>
-                  <tr>
-                    <td>Haley Kennedy</td>
-                    <td>Senior Marketing Designer</td>
-                    <td>London</td>
-                    <td>43</td>
-                    <td>2012/12/18</td>
-                    <td>$313,500</td>
-                  </tr>
-                  <tr>
-                    <td>Tatyana Fitzpatrick</td>
-                    <td>Regional Director</td>
-                    <td>London</td>
-                    <td>19</td>
-                    <td>2010/03/17</td>
-                    <td>$385,750</td>
-                  </tr>
-                  <tr>
-                    <td>Michael Silva</td>
-                    <td>Marketing Designer</td>
-                    <td>London</td>
-                    <td>66</td>
-                    <td>2012/11/27</td>
-                    <td>$198,500</td>
-                  </tr>
-                  <tr>
-                    <td>Paul Byrd</td>
-                    <td>Chief Financial Officer (CFO)</td>
-                    <td>New York</td>
-                    <td>64</td>
-                    <td>2010/06/09</td>
-                    <td>$725,000</td>
-                  </tr>
-                  <tr>
-                    <td>Gloria Little</td>
-                    <td>Systems Administrator</td>
-                    <td>New York</td>
-                    <td>59</td>
-                    <td>2009/04/10</td>
-                    <td>$237,500</td>
-                  </tr>
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td>{user.email}</td>
+                      <td>{user.lastName}</td>
+                      <td>{user.firstName}</td>
+                      <td>{user.username}</td>
+                      <td>{user.phoneNumber}</td>
+                      <td>
+                        <div className="btn-group">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="btn btn-sm btn-warning text-white"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user.id)}
+                            className="btn btn-sm btn-danger"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
         </div>
       </div>
-      {/*Row*/}
+      {editing && (
+        <div
+          className="modal fade show"
+          style={{ display: "block", background: "rgba(0,0,0,0.5)" }}
+        >
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Edit User</h5>
+                <button className="close" onClick={() => setEditing(null)}>
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    className="form-control"
+                    value={form.email}
+                    readOnly
+                    disabled
+                  />
+                </div>
+                <div className="form-group">
+                  <label>First Name</label>
+                  <input
+                    className="form-control"
+                    value={form.firstName}
+                    onChange={(e) =>
+                      setForm({ ...form, firstName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Last Name</label>
+                  <input
+                    className="form-control"
+                    value={form.lastName}
+                    onChange={(e) =>
+                      setForm({ ...form, lastName: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Username</label>
+                  <input
+                    className="form-control"
+                    value={form.username}
+                    onChange={(e) =>
+                      setForm({ ...form, username: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Phone Number</label>
+                  <input
+                    className="form-control"
+                    value={form.phoneNumber}
+                    onChange={(e) =>
+                      setForm({ ...form, phoneNumber: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-light"
+                  onClick={() => setEditing(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleSave()}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

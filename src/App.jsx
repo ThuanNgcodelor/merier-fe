@@ -21,19 +21,18 @@ import VetArticles from "./pages/vet/VetArticles.jsx";
 import VetProfile from "./pages/vet/VetProfile.jsx";
 import ChartAdmin from "./pages/admin/ChartAdmin.jsx";
 import OrdersPage from "./pages/admin/OrdersPage.jsx";
-import CategoriesPage from "./pages/admin/CategoriesPage.jsx";
 import RolesPage from "./pages/admin/RolesPage.jsx";
 import ShelterPage from "./pages/shelter/ShelterPage.jsx";
 import PetManagementPage from "./pages/shelter/PetManagementPage.jsx";
 import ShelterManagementPage from "./pages/shelter/ShelterManagementPage.jsx";
 import ShelterLayout from "./components/shelter/ShelterLayout.jsx";
-import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";                                                                                                {/* Shelter routes */}
+import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";
+import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 export default function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/register" element={<AuthPage />} />
@@ -62,6 +61,7 @@ export default function App() {
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="role-request" element={<RolesPage />} />
             <Route path="charts" element={<ChartAdmin />} />
+
           </Route>
           {/* Vet routes */}
           <Route
@@ -94,8 +94,6 @@ export default function App() {
             <Route path="manage" element={<ShelterManagementPage />} />
           </Route>
 
-
-          
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

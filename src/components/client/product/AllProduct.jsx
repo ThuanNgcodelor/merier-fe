@@ -193,7 +193,7 @@ const AllProduct = () => {
                                     </h4>
                                     <div className="price">
                                         {"$" + Number(product.price || 0).toLocaleString("en-US")}
-                                        {product.originalPrice && (
+                                        {product.originalPrice && Number(product.originalPrice) !== Number(product.price) && (
                                             <span className="price-old">
                         {" $" + Number(product.originalPrice).toLocaleString("en-US")}
                       </span>

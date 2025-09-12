@@ -15,13 +15,13 @@ export default function RoleRequestForm() {
         e.preventDefault();
         
         if (!selectedRole) {
-            setMessage('Vui lòng chọn role bạn muốn yêu cầu');
+            setMessage('Please select the role you want to request');
             setMessageType('error');
             return;
         }
 
         if (!reason.trim()) {
-            setMessage('Vui lòng nhập lý do yêu cầu role');
+            setMessage('Please enter a reason for your role request');
             setMessageType('error');
             return;
         }
@@ -35,7 +35,7 @@ export default function RoleRequestForm() {
                 reason: reason.trim()
             });
 
-            setMessage('Yêu cầu role đã được gửi thành công! Admin sẽ xem xét và phản hồi sớm nhất.');
+            setMessage('Your role request has been submitted successfully! An admin will review and respond shortly.');
             setMessageType('success');
             
             // Reset form
@@ -47,7 +47,7 @@ export default function RoleRequestForm() {
             
         } catch (error) {
             console.error('Error creating role request:', error);
-            setMessage('Có lỗi xảy ra khi gửi yêu cầu. Vui lòng thử lại sau.');
+            setMessage('An error occurred while submitting your request. Please try again later.');
             setMessageType('error');
         } finally {
             setIsSubmitting(false);
@@ -65,9 +65,9 @@ export default function RoleRequestForm() {
 
     const getStatusBadge = (status) => {
         const statusMap = {
-            'PENDING': { text: 'Đang chờ', class: 'badge-warning' },
-            'APPROVED': { text: 'Đã duyệt', class: 'badge-success' },
-            'REJECTED': { text: 'Từ chối', class: 'badge-danger' }
+            'PENDING': { text: 'Pending', class: 'badge-warning' },
+            'APPROVED': { text: 'Approved', class: 'badge-success' },
+            'REJECTED': { text: 'Rejected', class: 'badge-danger' }
         };
         
         const statusInfo = statusMap[status] || { text: status, class: 'badge-secondary' };
@@ -76,34 +76,34 @@ export default function RoleRequestForm() {
 
     return (
         <div className="myaccount-content">
-            <h3>Yêu cầu Role</h3>
+            <h3>Role Request</h3>
             
-            {/* Form để tạo role request */}
+            {/* Form to create role request */}
             <div className="account-details-form">
                 <form onSubmit={handleSubmit}>
                     <div className="single-input-item">
-                        <label htmlFor="role" className="required">Chọn Role bạn muốn yêu cầu</label>
+                        <label htmlFor="role" className="required">Select the role you want to request</label>
                         <select 
                             id="role" 
                             value={selectedRole} 
                             onChange={(e) => setSelectedRole(e.target.value)}
                             className="form-control"
                         >
-                            <option value="">-- Chọn Role --</option>
-                            <option value="VET">Vet (Bác sĩ thú y)</option>
-                            <option value="SHELTER">Shelter (Trại cứu hộ)</option>
+                            <option value="">-- Select Role --</option>
+                            <option value="VET">Vet (Veterinarian)</option>
+                            <option value="SHELTER">Shelter (Rescue Shelter)</option>
                         </select>
                     </div>
                     
                     <div className="single-input-item">
-                        <label htmlFor="reason" className="required">Lý do yêu cầu</label>
+                        <label htmlFor="reason" className="required">Reason for request</label>
                         <textarea 
                             id="reason" 
                             value={reason} 
                             onChange={(e) => setReason(e.target.value)}
                             rows="4"
                             className="form-control"
-                            placeholder="Vui lòng mô tả lý do bạn muốn có role này..."
+                            placeholder="Please describe why you want this role..."
                         />
                     </div>
                     
@@ -119,16 +119,16 @@ export default function RoleRequestForm() {
                             className="check-btn sqr-btn"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
+                            {isSubmitting ? 'Submitting...' : 'Submit Request'}
                         </button>
                     </div>
                 </form>
             </div>
 
-            {/* Danh sách các yêu cầu đã gửi */}
+            {/* List of submitted requests */}
             <div className="mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h4>Lịch sử yêu cầu</h4>
+                    <h4>Request History</h4>
                     <button 
                         className="btn btn-outline-primary btn-sm"
                         onClick={() => {
@@ -138,7 +138,7 @@ export default function RoleRequestForm() {
                             }
                         }}
                     >
-                        {showRequests ? 'Ẩn' : 'Xem'} lịch sử
+                        {showRequests ? 'Hide' : 'View'} history
                     </button>
                 </div>
                 
@@ -147,31 +147,31 @@ export default function RoleRequestForm() {
                         <table className="table table-bordered">
                             <thead className="thead-light">
                                 <tr>
-                                    <th>Role yêu cầu</th>
-                                    <th>Lý do</th>
-                                    <th>Trạng thái</th>
-                                    <th>Ngày tạo</th>
-                                    <th>Ghi chú Admin</th>
+                                    <th>Requested Role</th>
+                                    <th>Reason</th>
+                                    <th>Status</th>
+                                    <th>Created At</th>
+                                    <th>Admin Note</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {userRequests.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="text-center">Chưa có yêu cầu nào</td>
+                                        <td colSpan="5" className="text-center">No requests yet</td>
                                     </tr>
                                 ) : (
                                     userRequests.map((request) => (
                                         <tr key={request.id}>
                                             <td>
                                                 <strong>
-                                                    {request.requestedRole === 'VET' ? 'Vet (Bác sĩ thú y)' : 
-                                                     request.requestedRole === 'SHELTER' ? 'Shelter (Trại cứu hộ)' : 
+                                                    {request.requestedRole === 'VET' ? 'Vet (Veterinarian)' : 
+                                                     request.requestedRole === 'SHELTER' ? 'Shelter (Rescue Shelter)' : 
                                                      request.requestedRole}
                                                 </strong>
                                             </td>
                                             <td>{request.reason}</td>
                                             <td>{getStatusBadge(request.status)}</td>
-                                            <td>{new Date(request.creationTimestamp).toLocaleDateString('vi-VN')}</td>
+                                            <td>{new Date(request.creationTimestamp).toLocaleDateString('en-US')}</td>
                                             <td>{request.adminNote || '-'}</td>
                                         </tr>
                                     ))

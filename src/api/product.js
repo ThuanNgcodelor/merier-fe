@@ -4,8 +4,18 @@ const API_URL = "/v1";
 const api = createApiInstance(API_URL);
 
 export const fetchProducts = (params = {}) => {
-    return api.get("/stock/product/list", { params });
+    return api.get("/stock/product/listPage", { params });
 };
+
+export const removeCartItem = async (productId) => {
+    try {
+      await api.delete(`/stock/cart/item/remove/${productId}`);
+      return true;
+    } catch (error) {
+      console.error("Failed to remove cart item:", error);
+      return false;
+    }
+  }
 
 export const fetchProductById = (productId) => {
     return api.get(`/stock/product/getProductById/${productId}`);
@@ -16,7 +26,7 @@ export const fetchProductImageById = (imageId) => {
     });
 }
 export const fetchAddToCart = async (data) => {
-    try{
+    try{    
         const response = await api.post(`/stock/cart/item/add`, data);
         return response.data;
     }catch(err){

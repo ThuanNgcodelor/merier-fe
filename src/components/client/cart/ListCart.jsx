@@ -4,7 +4,7 @@ import imgFallback from "../../../assets/images/shop/6.png";
 import Cookies from "js-cookie";
 import { getCart } from "../../../api/user.js";
 import { fetchImageById } from "../../../api/image.js";
-import {fetchProductById} from "../../../api/product.js";
+import {fetchProductById,removeCartItem} from "../../../api/product.js";
 
 export function Cart() {
     const [cart, setCart] = useState(null);
@@ -12,6 +12,7 @@ export function Cart() {
     const [error, setError] = useState(null);
     const [imageUrls, setImageUrls] = useState({});
     const [selected, setSelected] = useState(() => new Set());
+    const [productNames, setProductNames] = useState({});
 
     const navigate = useNavigate();
     const token = Cookies.get("accessToken");
@@ -44,6 +45,7 @@ export function Cart() {
 
             const urls = {};
             const productCache = new Map();
+            const names = {};
 
             await Promise.all(
                 cart.items.map(async (item) => {
@@ -65,6 +67,8 @@ export function Cart() {
                                 productCache.set(pid, product);
                             }
                             imageId = product?.data?.imageId ?? null;
+                            const pname = product?.data?.name;
+                            if (pname) names[pid] = pname;
 
                         } catch {
                             imageId = null;
@@ -88,7 +92,10 @@ export function Cart() {
                 })
             );
 
-            if (!revoked) setImageUrls(urls);
+            if (!revoked) {
+                setImageUrls(urls);
++                setProductNames((prev) => ({ ...prev, ...names }));
+            }
         };
 
         fetchImages();
@@ -142,6 +149,17 @@ export function Cart() {
                 : Number(it.unitPrice || it.price || 0) * Number(it.quantity || 0);
         return sum + lineTotal;
     }, 0);
+
+    const handleRemove = async (pid) => {
+        try {
+                 const ok = await removeCartItem(pid);
+                if (ok) {
+                     const data = await getCart();
+                    setCart(data);            }
+             } catch (e) {
+                 console.error("Remove item failed:", e);
+             }
+         };
 
     const formatCurrency = (n) =>
         new Intl.NumberFormat("en-US", {
@@ -214,7 +232,6 @@ export function Cart() {
                                             const pid = item.productId ?? item.productId ?? item.id;
                                             const img = imageUrls[pid] ?? imgFallback;
                                             const rowSubtotal = Number(item.price || 0) * Number(item.quantity || 0);
-
                                             return (
                                                 <tr key={pid}>
                                                     <td>
@@ -238,11 +255,11 @@ export function Cart() {
                                                         </Link>
                                                     </td>
                                                     <td className="product-name">
-                                                        <h5 className="m-0">
-                                                            <Link
-                                                                to={`/products/${pid}`}>{item.productName || "Product name"}</Link>
-                                                        </h5>
-                                                        <div className="text-muted small">ID: {pid}</div>
+                                                        <div className="product-details-quality">
+                                                            <div className="pro-qty">
+                                                            {productNames[pid] || item.productName || pid}
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                     <td className="product-price">
                                                         <span className="amount">{formatCurrency(item.unitPrice)}</span>
@@ -263,10 +280,10 @@ export function Cart() {
                                                         <span>{formatCurrency(item.totalPrice)}</span>
                                                     </td>
                                                     <td className="product-remove">
-                                                        <a href="#/">
-                                                            <i className="fa fa-trash-o"></i>
-                                                        </a>
-                                                    </td>
+                                                 <a  onClick={(e) => { e.preventDefault(); handleRemove(pid); }} aria-label="Remove item">
+                                                             <i className="fa fa-trash-o"></i>
+                                                         </a>
+                                                     </td>
                                                 </tr>
                                             );
                                         })}

@@ -5,6 +5,7 @@ import { getUser } from "../../../api/user.js";
 import Address from "./Address.jsx";
 import AccountInfo from "./AccountInfo.jsx";
 import RoleRequestForm from "./RoleRequestForm.jsx";
+import MyPest from "./MyPest.jsx";
 
 export default function User() {
     const [, setUserInfo] = useState(null);
@@ -85,21 +86,21 @@ export default function User() {
                                             <div className="myaccount-tab-menu nav nav-tabs" id="nav-tab" role="tablist">
                                                 <button
                                                     className={`nav-link${activeTab === "dashboard" ? " active" : ""}`}
-                                                    onClick={() => setActiveTab("dashboard")}
+                                                    onClick={() => handleTabClick("dashboard")}
                                                 >
                                                     Dashboard
                                                 </button>
                                                 <button
                                                     className={`nav-link${activeTab === "orders" ? " active" : ""}`}
-                                                    onClick={() => setActiveTab("orders")}
+                                                    onClick={() => handleTabClick("orders")}
                                                 >
                                                     Orders
                                                 </button>
                                                 <button
-                                                    className={`nav-link${activeTab === "payment-method" ? " active" : ""}`}
-                                                    onClick={() => setActiveTab("payment-method")}
+                                                    className={`nav-link${activeTab === "my-pet" ? " active" : ""}`}
+                                                    onClick={() => handleTabClick("my-pet")}
                                                 >
-                                                    Payment Method
+                                                    My pet
                                                 </button>
                                                 <button className={`nav-link${activeTab === "address" ? " active" : ""}`} 
                                                     onClick={() => handleTabClick("address")}>
@@ -193,13 +194,8 @@ export default function User() {
                                             )}
 
                                             {/* Payment Method Tab */}
-                                            {activeTab === "payment-method" && (
-                                                <div className="tab-pane fade show active">
-                                                    <div className="myaccount-content">
-                                                        <h3>Payment Method</h3>
-                                                        <p className="saved-message">You Can't Saved Your Payment Method yet.</p>
-                                                    </div>
-                                                </div>
+                                            {activeTab === "my-pet" && (
+                                                <MyPest/>
                                             )}
 
                                             {/* Address Edit Tab */}
