@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 
 export default function ShelterLayout() {
   const location = useLocation();
+  const [open, setOpen] = useState(false);
 
   const navItems = [
     { path: '/shelter', label: 'Dashboard' },
@@ -12,26 +13,30 @@ export default function ShelterLayout() {
     { path: '/information', label: 'My Account' }
   ];
 
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="container-fluid p-0">
       <nav className="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
         <div className="container">
-          <Link className="navbar-brand fw-bold" to="/shelter">
+          <Link className="navbar-brand fw-bold" to="/shelter" onClick={() => setOpen(false)}>
             🐾 Shelter Management
           </Link>
+
           <button
             className="navbar-toggler"
             type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#shelterNavbar"
             aria-controls="shelterNavbar"
-            aria-expanded="false"
+            aria-expanded={open}
             aria-label="Toggle navigation"
+            onClick={() => setOpen(!open)}
           >
             <span className="navbar-toggler-icon"></span>
           </button>
 
-          <div className="collapse navbar-collapse" id="shelterNavbar">
+          <div className={`collapse navbar-collapse ${open ? 'show' : ''}`} id="shelterNavbar">
             <ul className="navbar-nav ms-auto">
               {navItems.map((item) => (
                 <li className="nav-item" key={item.path}>
@@ -40,6 +45,7 @@ export default function ShelterLayout() {
                       location.pathname === item.path ? 'active fw-semibold' : ''
                     }`}
                     to={item.path}
+                    onClick={() => setOpen(false)}
                   >
                     {item.label}
                   </Link>

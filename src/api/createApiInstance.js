@@ -16,6 +16,10 @@ const createApiInstance = (baseURL) => {
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
+            // Nếu payload là FormData, để trình duyệt tự set Content-Type với boundary
+            if (config.data instanceof FormData) {
+                delete config.headers['Content-Type'];
+            }
             return config;
         },
         (error) => {

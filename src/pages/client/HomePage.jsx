@@ -6,6 +6,7 @@ import {getMyPets} from "../../api/user.js";
 import {createAppointment} from "../../api/appointments.js";
 import {useState, useEffect} from "react";
 import ChatBotWidget from "../../components/client/ChatBotWidget.jsx";
+import Footer from "../../components/client/Footer.jsx";
 
 export default function HomePage() {
   const [selectedVet, setSelectedVet] = useState(null);
@@ -118,9 +119,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ===== FLOATING AI CHATBOT ===== */}
-
-
+        <Footer/>
         <ChatBotWidget />
             </main>
         </div>
