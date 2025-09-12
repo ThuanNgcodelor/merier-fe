@@ -6,6 +6,7 @@ import Address from "./Address.jsx";
 import AccountInfo from "./AccountInfo.jsx";
 import RoleRequestForm from "./RoleRequestForm.jsx";
 import MyPest from "./MyPest.jsx";
+import OrderList from "./OrderList.jsx";
 
 export default function User() {
     const [, setUserInfo] = useState(null);
@@ -150,47 +151,7 @@ export default function User() {
 
                                             {/* Orders Tab */}
                                             {activeTab === "orders" && (
-                                                <div className="tab-pane fade show active">
-                                                    <div className="myaccount-content">
-                                                        <h3>Orders</h3>
-                                                        <div className="myaccount-table table-responsive text-center">
-                                                            <table className="table table-bordered">
-                                                                <thead className="thead-light">
-                                                                    <tr>
-                                                                        <th>Order</th>
-                                                                        <th>Date</th>
-                                                                        <th>Status</th>
-                                                                        <th>Total</th>
-                                                                        <th>Action</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <tr>
-                                                                        <td>1</td>
-                                                                        <td>Aug 22, 2021</td>
-                                                                        <td>Pending</td>
-                                                                        <td>$3000</td>
-                                                                        <td><a href="shop-cart.html" className="check-btn sqr-btn ">View</a></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>2</td>
-                                                                        <td>July 22, 2021</td>
-                                                                        <td>Approved</td>
-                                                                        <td>$200</td>
-                                                                        <td><a href="shop-cart.html" className="check-btn sqr-btn ">View</a></td>
-                                                                    </tr>
-                                                                    <tr>
-                                                                        <td>3</td>
-                                                                        <td>June 12, 2017</td>
-                                                                        <td>On Hold</td>
-                                                                        <td>$990</td>
-                                                                        <td><a href="shop-cart.html" className="check-btn sqr-btn ">View</a></td>
-                                                                    </tr>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <OrderList />
                                             )}
 
                                             {/* Payment Method Tab */}

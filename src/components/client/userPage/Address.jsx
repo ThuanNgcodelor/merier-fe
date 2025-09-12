@@ -33,20 +33,22 @@ export default function Address() {
         fetchAddresses();
     }, []);
 
-    const handleEditClick = async (address) => {
+    const handleEditClick = async (address, index) => {
         try {
             setLoading(true);
-            const addressData = await getAddressId(address.addressId);
+            
+            // Use the address data directly since we have all the data
             setEditAddress({
-                id: addressData.addressId,
-                addressName: addressData.addressName || '',
-                recipientName: addressData.recipientName || '',
-                recipientPhone: addressData.recipientPhone || '',
-                province: addressData.province || '',
-                streetAddress: addressData.streetAddress || ''
+                id: address.id,
+                addressName: address.addressName || '',
+                recipientName: address.recipientName || '',
+                recipientPhone: address.recipientPhone || '',
+                province: address.province || '',
+                streetAddress: address.streetAddress || ''
             });
             setShowEditModal(true);
-        } catch {
+        } catch (error) {
+            console.error('Error loading address:', error);
             setError('Failed to load address data');
         } finally {
             setLoading(false);
@@ -58,10 +60,18 @@ export default function Address() {
         setError('');
         setSuccess('');
         try {
-            await setDefaultAddress(address.addressId);
+            const addressId = address.id;
+            
+            if (!addressId) {
+                setError('Address ID not found');
+                return;
+            }
+            
+            await setDefaultAddress(addressId);
             setSuccess('Default address set successfully!');
             await fetchAddresses();
-        } catch {
+        } catch (error) {
+            console.error('Error setting default address:', error);
             setError('Failed to set default address. Please try again.');
         } finally {
             setLoading(false);
@@ -116,10 +126,18 @@ export default function Address() {
         if (!addressToDelete) return;
 
         try {
-            await deleteAddress(addressToDelete.addressId);
+            const addressId = addressToDelete.id;
+            
+            if (!addressId) {
+                setError('Address ID not found');
+                return;
+            }
+            
+            await deleteAddress(addressId);
             setSuccess('Address deleted successfully!');
             await fetchAddresses();
-        } catch  {
+        } catch (error) {
+            console.error('Error deleting address:', error);
             setError('Failed to delete address. Please try again.');
         } finally {
             setShowDeleteConfirm(false);
@@ -131,7 +149,8 @@ export default function Address() {
         try {
             const data = await getAllAddress();
             setAddress(data);
-        } catch{
+        } catch (error) {
+            console.error('Error fetching addresses:', error);
             setError('Failed to fetch addresses');
         }
     }
@@ -193,15 +212,15 @@ export default function Address() {
 
                 {addresses.length > 0 ? (
                     addresses.map((address, index) => (
-                        <div key={index} className="row mb-4">
+                        <div key={address.id || `address-${index}`} className="row mb-4" data-address-index={index}>
                             <div className="col-md-12">
                                 <div className="card">
                                     <div className="card-header">
                                         <div className="row align-items-center">
                                             <div className="col-12 col-md-6 mb-2 mb-md-0">
                                                 <h3 className="mb-0">
-                                                    {address.addressName || `Address ${index + 1}`}
-                                                    {address.isDefault && (
+                                                    {address.addressName || address.name || `Address ${index + 1}`}
+                                                    {(address.isDefault || address.default) && (
                                                         <span className="badge border border-success text-success ms-2">Default</span>
                                                     )}
                                                 </h3>
@@ -215,7 +234,7 @@ export default function Address() {
                                                     </button>
                                                     <button
                                                         className="btn  "
-                                                        onClick={() => handleEditClick(address)}
+                                                        onClick={() => handleEditClick(address, index)}
                                                     >
                                                         <i className="fa fa-edit"></i> Edit
                                                     </button>
@@ -231,11 +250,11 @@ export default function Address() {
                                     </div>
                                     <div className="card-body">
                                         <address className="mb-0">
-                                            <p><strong>Recipient Name</strong>: {address.recipientName}</p>
-                                            <p><strong>Recipient Phone</strong>: {address.recipientPhone}</p>
-                                            <p><strong>Street Address</strong>: {address.streetAddress}</p>
+                                            <p><strong>Recipient Name</strong>: {address.recipientName || address.recipient_name}</p>
+                                            <p><strong>Recipient Phone</strong>: {address.recipientPhone || address.recipient_phone}</p>
+                                            <p><strong>Street Address</strong>: {address.streetAddress || address.street_address}</p>
                                             <p><strong>Province</strong>: {address.province}</p>
-                                            <p><strong>Default</strong>: {address.isDefault ? 'Yes' : 'No'}</p>
+                                            <p><strong>Default</strong>: {(address.isDefault || address.default) ? 'Yes' : 'No'}</p>
                                         </address>
                                     </div>
                                 </div>

@@ -5,6 +5,8 @@ import Cookies from "js-cookie";
 import { getCart } from "../../../api/user.js";
 import { fetchImageById } from "../../../api/image.js";
 import {fetchProductById,removeCartItem} from "../../../api/product.js";
+import { createOrder } from "../../../api/order.js";
+import { getAllAddress } from "../../../api/user.js";
 
 export function Cart() {
     const [cart, setCart] = useState(null);
@@ -13,11 +15,16 @@ export function Cart() {
     const [imageUrls, setImageUrls] = useState({});
     const [selected, setSelected] = useState(() => new Set());
     const [productNames, setProductNames] = useState({});
+    const [addresses, setAddresses] = useState([]);
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
+    const [showAddressModal, setShowAddressModal] = useState(false);
+    const [orderLoading, setOrderLoading] = useState(false);
+    const [addressLoading, setAddressLoading] = useState(false);
+    const [modalSelectedAddressId, setModalSelectedAddressId] = useState(null);
 
     const navigate = useNavigate();
     const token = Cookies.get("accessToken");
 
-    // Load cart
     useEffect(() => {
         if (!token) {
             navigate("/login");
@@ -36,9 +43,53 @@ export function Cart() {
         })();
     }, [token, navigate]);
 
+    // Load addresses
+    useEffect(() => {
+        if (!token) return;
+        (async () => {
+            setAddressLoading(true);
+            try {
+                const data = await getAllAddress();
+                setAddresses(data);
+                const defaultAddress = data.find(addr => addr.isDefault);
+                if (defaultAddress) {
+                    setSelectedAddressId(defaultAddress.id);
+                } else if (data.length > 0) {
+                    setSelectedAddressId(data[0].id);
+                }
+            } catch (error) {
+                setError("Failed to load addresses. Please try again.");
+            } finally {
+                setAddressLoading(false);
+            }
+        })();
+    }, [token]);
+
+    useEffect(() => {
+        const handleFocus = () => {
+            if (token) {
+                refreshAddresses();
+            }
+        };
+
+        const handleVisibilityChange = () => {
+            if (!document.hidden && token) {
+                refreshAddresses();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [token]);
+
     useEffect(() => {
         let revoked = false;
-        const blobUrls = []; // để revoke
+        const blobUrls = []; 
 
         const fetchImages = async () => {
             if (!Array.isArray(cart?.items) || cart.items.length === 0) return;
@@ -55,10 +106,8 @@ export function Cart() {
                         return;
                     }
 
-                    // 1) Ưu tiên imageId có sẵn trên item
                     let imageId = item.imageId;
 
-                    // 2) Nếu chưa có, lấy product để đọc imageId
                     if (!imageId) {
                         try {
                             let product = productCache.get(pid);
@@ -75,7 +124,6 @@ export function Cart() {
                         }
                     }
 
-                    // 3) Nếu có imageId -> tải ảnh
                     if (imageId) {
                         try {
                             const res = await fetchImageById(imageId);
@@ -136,7 +184,6 @@ export function Cart() {
         [items, selected]
     );
 
-    // Tính tổng số lượng & tiền theo các item đã chọn
     const selectedQuantity = selectedItems.reduce(
         (sum, it) => sum + Number(it.quantity || 0),
         0
@@ -168,10 +215,79 @@ export function Cart() {
             maximumFractionDigits: 0,
         }).format(Number(n || 0));
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (selected.size === 0) return;
-        const productIds = Array.from(selected);
-        navigate("/checkout", {state: {productIds}});
+        
+        if (addresses.length === 0) {
+            navigate("/information/address");
+            return;
+        }
+        
+        if (!selectedAddressId) {
+            setShowAddressModal(true);
+            return;
+        }
+        
+        setOrderLoading(true);
+        try {
+            const orderData = {
+                selectedItems: selectedItems.map(item => ({
+                    productId: item.productId || item.id,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice || item.price
+                })),
+                addressId: selectedAddressId
+            };
+            
+            await createOrder(orderData);
+            navigate("/order-success");
+        } catch (error) {
+            console.error("Failed to create order:", error);
+            setError("Failed to create order. Please try again.");
+        } finally {
+            setOrderLoading(false);
+        }
+    };
+
+    const handleAddressSelect = (addressId) => {
+        setModalSelectedAddressId(addressId);
+    };
+
+    const handleConfirmSelection = () => {
+        if (modalSelectedAddressId) {
+            setSelectedAddressId(modalSelectedAddressId);
+            setShowAddressModal(false);
+        }
+    };
+
+    const handleOpenAddressModal = () => {
+        setModalSelectedAddressId(selectedAddressId); 
+        setShowAddressModal(true);
+    };
+
+    useEffect(() => {
+        if (!showAddressModal) {
+            setModalSelectedAddressId(null);
+        }
+    }, [showAddressModal]);
+
+    const refreshAddresses = async () => {
+        setAddressLoading(true);
+        try {
+            const data = await getAllAddress();
+            setAddresses(data);
+            const defaultAddress = data.find(addr => addr.isDefault);
+            if (defaultAddress) {
+                setSelectedAddressId(defaultAddress.id);
+            } else if (data.length > 0) {
+                setSelectedAddressId(data[0].id);
+            }
+        } catch (error) {
+            console.error("Failed to refresh addresses:", error);
+            setError("Failed to load addresses. Please try again.");
+        } finally {
+            setAddressLoading(false);
+        }
     };
 
     if (loading) return <div className="container cart"><p>Loading cart...</p></div>;
@@ -180,6 +296,54 @@ export function Cart() {
 
     return (
         <>
+            <style>
+                {`
+                    .cart-table-wrap {
+                        overflow-x: hidden;
+                    }
+                    .cart-table table {
+                        width: 100% !important;
+                        table-layout: fixed;
+                    }
+                    .cart-table table th,
+                    .cart-table table td {
+                        word-wrap: break-word;
+                        overflow-wrap: break-word;
+                    }
+                    .cart-table table th:nth-child(1),
+                    .cart-table table td:nth-child(1) {
+                        width: 50px;
+                    }
+                    .cart-table table th:nth-child(2),
+                    .cart-table table td:nth-child(2) {
+                        width: 80px;
+                    }
+                    .cart-table table th:nth-child(3),
+                    .cart-table table td:nth-child(3) {
+                        width: 200px;
+                        max-width: 200px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
+                    .cart-table table th:nth-child(4),
+                    .cart-table table td:nth-child(4) {
+                        width: 100px;
+                    }
+                    .cart-table table th:nth-child(5),
+                    .cart-table table td:nth-child(5) {
+                        width: 100px;
+                    }
+                    .cart-table table th:nth-child(6),
+                    .cart-table table td:nth-child(6) {
+                        width: 120px;
+                    }
+                    .cart-table table th:nth-child(7),
+                    .cart-table table td:nth-child(7) {
+                        width: 50px;
+                    }
+                `}
+            </style>
             <section className="page-header-area" style={{backgroundColor: "#f8eefa"}}>
                 <div className="container">
                     <div className="row">
@@ -207,11 +371,11 @@ export function Cart() {
                         {/* Cart Table */}
                         <div className="col-lg-12">
                             <div className="cart-table-wrap">
-                                <div className="cart-table table-responsive">
+                                <div className="cart-table">
                                     <table>
                                         <thead>
                                         <tr>
-                                            <th style={{width: 48}}>
+                                            <th>
                                                 <input
                                                     type="checkbox"
                                                     aria-label="Select all"
@@ -398,6 +562,73 @@ export function Cart() {
                                     </div>
                                 </div>
 
+                                {/* Address Selection */}
+                                <div className="address-selection mb-3">
+                                    <h5>Delivery Address {addressLoading && <small className="text-muted">(Loading...)</small>}</h5>
+                                    {addressLoading ? (
+                                        <div className="selected-address p-3 border rounded bg-light">
+                                            <p className="text-muted mb-0">Loading addresses...</p>
+                                        </div>
+                                    ) : addresses.length > 0 ? (
+                                        <>
+                                            <div className="selected-address p-3 border rounded">
+                                                {selectedAddressId ? (
+                                                    (() => {
+                                                        const selectedAddr = addresses.find(addr => addr.id === selectedAddressId);
+                                                        return selectedAddr ? (
+                                                            <div>
+                                                                <strong>{selectedAddr.recipientName}</strong>
+                                                                <p className="mb-1">{selectedAddr.streetAddress}</p>
+                                                                <p className="mb-1">{selectedAddr.province}</p>
+                                                                <p className="mb-0">Phone: {selectedAddr.recipientPhone}</p>
+                                                                {selectedAddr.isDefault && <span className="badge bg-primary">Default</span>}
+                                                            </div>
+                                                        ) : null;
+                                                    })()
+                                                ) : (
+                                                    <p className="text-muted">No address selected</p>
+                                                )}
+                                            </div>
+                                            <div className="d-flex gap-2 mt-2">
+                                                <button 
+                                                    className="btn btn-outline-primary btn-sm"
+                                                    onClick={handleOpenAddressModal}
+                                                >
+                                                    {selectedAddressId ? 'Change Address' : 'Select Address'}
+                                                </button>
+                                                <button 
+                                                    className="btn btn-outline-secondary btn-sm"
+                                                    onClick={refreshAddresses}
+                                                    disabled={addressLoading}
+                                                    title="Refresh addresses"
+                                                >
+                                                    <i className={`fa fa-refresh ${addressLoading ? 'fa-spin' : ''}`}></i>
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="selected-address p-3 border rounded bg-light">
+                                            <p className="text-muted mb-2">No addresses found. Please add an address to continue.</p>
+                                            <div className="d-flex gap-2">
+                                                <button 
+                                                    className="btn btn-primary btn-sm"
+                                                    onClick={() => navigate("/information/address")}
+                                                >
+                                                    Add Address
+                                                </button>
+                                                <button 
+                                                    className="btn btn-outline-secondary btn-sm"
+                                                    onClick={refreshAddresses}
+                                                    disabled={addressLoading}
+                                                    title="Refresh addresses"
+                                                >
+                                                    <i className={`fa fa-refresh ${addressLoading ? 'fa-spin' : ''}`}></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="grand-total-btn d-flex gap-4">
                                     <button
                                         className="btn btn-outline-secondary"
@@ -417,7 +648,13 @@ export function Cart() {
                                     </button>
                                 </div>
                                 <div className="grand-total-btn">
-                                    <a className="btn btn-link" onClick={handleCheckout}>Proceed to checkout</a>
+                                    <button 
+                                        className="btn btn-link" 
+                                        onClick={handleCheckout}
+                                        disabled={orderLoading || selected.size === 0}
+                                    >
+                                        {orderLoading ? 'Creating Order...' : 'Proceed to checkout'}
+                                    </button>
                                 </div>
                                 {selected.size === 0 && (
                                     <small className="text-muted d-block mt-2">
@@ -429,6 +666,104 @@ export function Cart() {
                     </div>
                 </div>
             </section>
+
+            {/* Address Selection Modal */}
+            {showAddressModal && (
+                <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
+                    <div className="modal-dialog modal-lg">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Select Delivery Address</h5>
+                                <div className="d-flex gap-2">
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline-secondary btn-sm"
+                                        onClick={refreshAddresses}
+                                        disabled={addressLoading}
+                                        title="Refresh addresses"
+                                    >
+                                        <i className={`fa fa-refresh ${addressLoading ? 'fa-spin' : ''}`}></i>
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        className="btn-close" 
+                                        onClick={() => setShowAddressModal(false)}
+                                    ></button>
+                                </div>
+                            </div>
+                            <div className="modal-body">
+                                {addresses.length === 0 ? (
+                                    <div className="text-center">
+                                        <p className="text-muted mb-3">No addresses found. Please add an address first.</p>
+                                        <button 
+                                            className="btn btn-primary"
+                                            onClick={() => {
+                                                setShowAddressModal(false);
+                                                navigate("/information/address");
+                                            }}
+                                        >
+                                            Add Address
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="row">
+                                        {addresses.map((address) => (
+                                            <div key={address.id} className="col-md-6 mb-3">
+                                                <div 
+                                                    className={`card h-100 cursor-pointer ${
+                                                        modalSelectedAddressId === address.id ? 'border-primary' : ''
+                                                    }`}
+                                                    onClick={() => handleAddressSelect(address.id)}
+                                                    style={{cursor: 'pointer'}}
+                                                >
+                                                    <div className="card-body">
+                                                        <div className="d-flex justify-content-between align-items-start">
+                                                            <h6 className="card-title">{address.addressName || 'Unnamed Address'}</h6>
+                                                            {address.isDefault && (
+                                                                <span className="badge bg-primary">Default</span>
+                                                            )}
+                                                        </div>
+                                                        <p className="card-text">
+                                                            <strong>{address.recipientName}</strong><br/>
+                                                            {address.streetAddress}<br/>
+                                                            {address.province}<br/>
+                                                            Phone: {address.recipientPhone}
+                                                        </p>
+                                                        {modalSelectedAddressId === address.id && (
+                                                            <div className="text-primary">
+                                                                <i className="fa fa-check-circle"></i> Selected
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="modal-footer">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-secondary" 
+                                    onClick={() => setShowAddressModal(false)}
+                                >
+                                    Cancel
+                                </button>
+                                {addresses.length > 0 && (
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-primary" 
+                                        onClick={handleConfirmSelection}
+                                        disabled={!modalSelectedAddressId}
+                                    >
+                                        Confirm Selection
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

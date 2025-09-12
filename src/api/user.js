@@ -15,6 +15,15 @@ export const getAllUser = async () => {
     }
 }
 
+export const getOrdersByUser = async () => {
+    try {
+        const response = await api.get("/order/getOrderByUserId");
+        return response.data;
+    } catch {
+        throw new Error("Failed to fetch orders");
+    }
+};
+
 export async function deleteUserById(id) {
     // CHỌN 1 trong 2 URL tùy BE:
     // const { data } = await axios.delete(`/v1/user/${id}`);
@@ -170,7 +179,7 @@ export const getUserRoleRequests = async () => {
 // Pet APIs
 export const getMyPets = async () => {
     try {
-        const response = await api.get("/pet");
+        const response = await api.get("/pet/my");
         return response.data;
     } catch (error) {
         console.error("Error fetching pets:", error);

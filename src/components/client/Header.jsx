@@ -99,7 +99,9 @@ export default function Header() {
                 className="main-nav d-flex align-items-center justify-content-evenly flex-grow-1 mb-0"
                 style={{ listStyle: 'none', paddingLeft: 0 }}
               >
+                <li><Link to="/shop">Shop</Link></li>
                 <li><Link to="/adoption">Adoption</Link></li>
+
 
                 {!authed ? (
                   <li><Link to="/login" onClick={handleLoginClick}>Login</Link></li>

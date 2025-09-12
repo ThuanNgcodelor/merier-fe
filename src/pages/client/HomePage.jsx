@@ -40,21 +40,18 @@ export default function HomePage() {
     }
 
     try {
-      // Create booking data in the format backend expects
       const startDateTime = new Date(`${date}T${time}:00`);
       const endDateTime = new Date(`${date}T${String(parseInt(time.split(':')[0]) + 1).padStart(2, '0')}:${time.split(':')[1]}:00`);
 
       const bookingData = {
         petId: petId,
-        vetId: selectedVet.userId, // Backend uses userId as the primary ID for vets
+        vetId: selectedVet.userId, 
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         reason: reason || "Vet appointment"
       };
 
-      console.log("Sending booking data:", bookingData);
 
-      // Call API to create appointment
       await createAppointment(bookingData);
 
       alert(`Successfully booked ${selectedVet.specialization || 'Veterinarian'} for ${petName} on ${date} at ${time} (Reason: ${reason})`);
@@ -73,9 +70,7 @@ export default function HomePage() {
                  <Slider/>
                  <AllProduct/>
                  <AllVets/>
-        {/* <section className="container my-5">
-        </section> */}
-        {/* ===== BOOKING MODAL ===== */}
+   
         {selectedVet && (
           <div className="vf-backdrop">
             <div className="vf-modal p-4 bg-white rounded shadow">

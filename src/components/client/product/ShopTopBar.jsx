@@ -12,7 +12,7 @@ const ShopTopBar = () => {
                                 <ol className="breadcrumb">
                                     <li className="breadcrumb-item"><Link to="">David-Nguyen</Link></li>
                                 </ol>
-                                <h2 className="page-header-title">Search Product</h2>
+                                <h2 className="page-header-title">Product</h2>
                             </div>
                         </div>
                         <div className="col-sm-4 d-sm-flex justify-content-end align-items-end">
