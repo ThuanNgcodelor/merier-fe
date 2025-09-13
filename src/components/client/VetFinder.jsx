@@ -1,29 +1,67 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchAllVets, searchVets, getVetById } from "../../api/vet.js";
-import { getMyPets } from "../../api/user.js";
+import { getMyPets, createDefaultAddressForTest, checkDefaultAddress } from "../../api/user.js";
 import { createAppointment } from "../../api/appointments.js";
+import defaultVetImage from "../../assets/images/photos/about3.jpg";
 
 // Card
 function VetCard({ vet, onBook }) {
   return (
-    <div className="card shadow-sm p-3 m-2" style={{ borderRadius: "16px" }}>
-      <div className="text-center">
+    <div className="col-12 col-sm-6 col-lg-4 mb-4">
+      <div className="card h-100 shadow-sm" style={{ borderRadius: 16 }}>
         <img
-          src={vet.image || "https://via.placeholder.com/200x150?text=Vet"}
-          alt={vet.name || vet.fullName || "Vet"}
-          className="img-fluid mb-2"
+          src={vet.image || vet.vetImage || defaultVetImage}
+          alt={vet.vetName || vet.name || vet.fullName || "Vet"}
+          className="card-img-top"
+          style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, objectFit: "cover", height: 160 }}
         />
+        <div className="card-body d-flex flex-column">
+          <h6 className="fw-bold mb-1">
+            <span style={{ marginRight: 6 }}>🩺</span>
+            {vet.vetName || vet.name || vet.fullName || "Unknown Vet"}
+          </h6>
+          <div className="text-muted small mb-1">
+            <strong>Specialization:</strong> {vet.specialization || vet.speciality || "General"}
+          </div>
+          <div className="small text-muted mb-1">
+            <span style={{ marginRight: 6 }}>📍</span>
+            {vet.clinicAddress || vet.address || vet.clinic || vet.clinicName || "No address"}
+          </div>
+          {vet.clinicLocation && (
+            <div className="small text-muted mb-1">
+              <span style={{ marginRight: 6 }}>🏙️</span>
+              {vet.clinicLocation.city}, {vet.clinicLocation.district}
+            </div>
+          )}
+          <div className="d-flex align-items-center justify-content-between mb-2">
+            <span className="badge text-bg-light">
+              {vet.yearsExperience || vet.experience || 0} yrs exp.
+            </span>
+            {vet.distance !== undefined && (
+              <span className="badge text-bg-primary">
+                📏 {vet.distance.toFixed(1)} km
+              </span>
+            )}
+          </div>
+          <div className="small text-muted mb-2">
+            <span style={{ marginRight: 6 }}>📞</span>
+            {vet.vetPhone || vet.phone || "N/A"}
+          </div>
+          {vet.bio && (
+            <div className="small text-muted mb-2" style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden'
+            }}>
+              {vet.bio}
+            </div>
+          )}
+          <button className="btn btn-primary btn-sm mt-auto" onClick={() => onBook(vet)}>
+            Book Appointment
+          </button>
+        </div>
       </div>
-      <h5 className="fw-bold">{vet.specialization || "Veterinarian"}</h5>
-      <p className="text-muted mb-1">{vet.specialization || vet.speciality}</p>
-      <p className="small mb-1">{vet.clinic || vet.clinicName}</p>
-      <p className="small">{vet.address}</p>
-      <p>
-        <strong>${vet.price ?? vet.fee ?? 0}</strong> — {(vet.yearsExperience ?? vet.experience ?? 0)} yrs exp.
-      </p>
-      <button className="btn btn-primary btn-sm" onClick={() => onBook(vet)}>
-        Book Appointment
-      </button>
     </div>
   );
 }
@@ -141,6 +179,8 @@ export default function VetFinder() {
   const [specialization, setSpecialization] = useState("");
   const [selectedVet, setSelectedVet] = useState(null);
   const [error, setError] = useState("");
+  const [hasDefaultAddress, setHasDefaultAddress] = useState(false);
+  const [addressMessage, setAddressMessage] = useState("");
 
   const hasFilters = useMemo(() => q || province || specialization, [q, province, specialization]);
 
@@ -152,6 +192,13 @@ export default function VetFinder() {
         setError("");
         const data = await fetchAllVets();
         if (!ignore) setList(Array.isArray(data) ? data : data?.content || []);
+        
+        // Check default address status
+        const addressStatus = await checkDefaultAddress();
+        if (!ignore) {
+          setHasDefaultAddress(addressStatus.hasDefaultAddress);
+          setAddressMessage(addressStatus.message);
+        }
       } catch (e) {
         if (!ignore) setError("Failed to load vets.");
       } finally {
@@ -200,11 +247,63 @@ export default function VetFinder() {
     }
   };
 
-  return (
-    <div className="container my-4">
-      <h3 className="mb-3">Find a Vet</h3>
+  const handleCreateDefaultAddress = async () => {
+    try {
+      setLoading(true);
+      const result = await createDefaultAddressForTest();
+      if (result.success) {
+        setHasDefaultAddress(true);
+        setAddressMessage(result.message);
+        alert("✅ " + result.message + "\n📍 Address: " + result.address);
+      } else {
+        alert("ℹ️ " + result.message);
+      }
+    } catch (error) {
+      alert("❌ Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      <form className="row g-2 align-items-end mb-3" onSubmit={handleSearch}>
+  return (
+    <section className="product-area section-space">
+      <div className="container">
+        <div className="section-title text-center">
+          <h2 className="title">Find Veterinarians</h2>
+          <p>Search for veterinarians by name, location, or specialization and book appointments.</p>
+        </div>
+
+        <div className="card border-0 shadow-sm mb-4">
+          <div className="card-body">
+            <h5 className="card-title mb-3">🔍 Search Filters</h5>
+            
+            {/* Address Status */}
+            {!hasDefaultAddress && (
+              <div className="alert alert-warning mb-3">
+                <div className="d-flex align-items-center justify-content-between">
+                  <div>
+                    <strong>⚠️ No Default Address</strong>
+                    <p className="mb-0 small">{addressMessage}</p>
+                  </div>
+                  <button 
+                    className="btn btn-sm btn-warning"
+                    onClick={handleCreateDefaultAddress}
+                    disabled={loading}
+                  >
+                    🏠 Create Test Address
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {hasDefaultAddress && (
+              <div className="alert alert-success mb-3">
+                <strong>✅ Default Address Ready</strong>
+                <p className="mb-0 small">{addressMessage}</p>
+              </div>
+            )}
+            
+            <form className="row g-2 align-items-end" onSubmit={handleSearch}>
         <div className="col-12 col-md-4">
           <label className="form-label">Search</label>
           <input
@@ -232,28 +331,53 @@ export default function VetFinder() {
             placeholder="e.g. Surgery"
           />
         </div>
-        <div className="col-12 col-md-2 d-grid">
-          <button className="btn btn-primary" type="submit" disabled={loading}>
-            {loading ? "Loading..." : "Find"}
-          </button>
+              <div className="col-12 col-md-2 d-grid">
+                <button className="btn btn-primary" type="submit" disabled={loading}>
+                  {loading ? "Loading..." : "🔍 Find Vets"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
 
       {error && <div className="alert alert-danger py-2">{error}</div>}
 
-      <div className="row">
-        {list?.length === 0 && !loading && <div className="text-muted px-3">No vets found.</div>}
-        {list?.map((vet) => (
-          <div className="col-sm-6 col-md-4 col-lg-3" key={vet.id ?? vet.vetId ?? vet.vetUserId ?? vet.userId}>
-            <VetCard vet={vet} onBook={handleBookClick} />
+      {loading && (
+        <div className="text-center py-4">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
           </div>
-        ))}
-      </div>
-
-      {selectedVet && (
-        <BookingModal vet={selectedVet} onClose={() => setSelectedVet(null)} />
+          <p className="mt-2 text-muted">Loading veterinarians...</p>
+        </div>
       )}
-    </div>
+
+      {!loading && list?.length === 0 && (
+        <div className="text-center py-5">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body py-5">
+              <div className="mb-4">
+                <i className="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5>No veterinarians found</h5>
+                <p className="text-muted">Try adjusting your search criteria or filters</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!loading && list?.length > 0 && (
+        <div className="row">
+          {list.map((vet) => (
+            <VetCard key={vet.id ?? vet.vetId ?? vet.vetUserId ?? vet.userId} vet={vet} onBook={handleBookClick} />
+          ))}
+        </div>
+      )}
+
+        {selectedVet && (
+          <BookingModal vet={selectedVet} onClose={() => setSelectedVet(null)} />
+        )}
+      </div>
+    </section>
   );
 }
 

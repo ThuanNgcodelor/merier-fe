@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "./layout/Sidebar";
 import TopBar from "./layout/TopBar";
 import Footer from "./layout/Footer";
+import {logout} from "../../api/auth.js";
 
 export default function AdminLayout() {
     useEffect(() => {
@@ -128,6 +129,7 @@ export default function AdminLayout() {
                         <div className="modal-footer">
                             <button type="button" className="btn btn-outline-primary" data-dismiss="modal">Cancel</button>
                             <a href="/login" className="btn btn-primary">Logout</a>
+
                         </div>
                     </div>
                 </div>

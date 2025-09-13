@@ -9,6 +9,7 @@ import ChatBotWidget from "../../components/client/ChatBotWidget.jsx";
 import Footer from "../../components/client/Footer.jsx";
 import CarePlanner from "../../components/client/CarePlanner.jsx";
 import FloatingCareLauncher from "../../components/client/FloatingCareLauncher.jsx";
+import LocationServices from "../../components/client/LocationServices.jsx";
 export default function HomePage() {
   const [selectedVet, setSelectedVet] = useState(null);
   const [pets, setPets] = useState([]);
@@ -68,7 +69,9 @@ export default function HomePage() {
         <div className="wrapper">
             <Header/>
             <main className="main-content">
+
                  <Slider/>
+            <LocationServices/>
                  <AllProduct/>
                  <AllVets/>
    
@@ -114,7 +117,8 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        <CarePlanner/>
+
+        <CarePlanner />
         <FloatingCareLauncher/>
         <Footer/>
         <ChatBotWidget />

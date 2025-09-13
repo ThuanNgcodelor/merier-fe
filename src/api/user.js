@@ -306,11 +306,119 @@ export const deletePet = async (petId, soft = true) => {
 
 export const getPetHealthRecords = async (petId) => {
     try {
-        const response = await api.get(`/pet/${petId}/health-records`);
+        const response = await api.get(`/health-records/pet/${petId}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching health records:", error);
         throw new Error("Failed to fetch health records");
+    }
+}
+
+// Health Record APIs
+export const getHealthRecord = async (recordId) => {
+    try {
+        const response = await api.get(`/health-records/${recordId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching health record:", error);
+        throw new Error("Failed to fetch health record");
+    }
+}
+
+export const createHealthRecord = async (data) => {
+    try {
+        const response = await api.post("/health-records", data);
+        return response.data;
+    } catch (error) {
+        console.error("Error creating health record:", error);
+        throw new Error("Failed to create health record");
+    }
+}
+
+export const uploadHealthDocument = async (recordId, file, docType) => {
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (docType) formData.append("docType", docType);
+        
+        const response = await api.post(`/health-records/${recordId}/documents`, formData, {
+            transformRequest: [(payload, headers) => {
+                delete headers.common?.["Content-Type"];
+                delete headers.post?.["Content-Type"];
+                delete headers["Content-Type"];
+                return payload;
+            }],
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error uploading health document:", error);
+        throw new Error("Failed to upload health document");
+    }
+}
+
+export const deleteHealthRecord = async (recordId) => {
+    try {
+        const response = await api.delete(`/health-records/${recordId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting health record:", error);
+        throw new Error("Failed to delete health record");
+    }
+}
+
+export const deleteHealthDocument = async (documentId) => {
+    try {
+        const response = await api.delete(`/health-records/documents/${documentId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error deleting health document:", error);
+        throw new Error("Failed to delete health document");
+    }
+}
+
+// Debug function to check health records
+export const debugPetHealthRecords = async (petId) => {
+    try {
+        const response = await api.get(`/health-records/debug/pet/${petId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error debugging health records:", error);
+        throw new Error("Failed to debug health records");
+    }
+}
+
+// Download health document
+export const downloadHealthDocument = async (documentId) => {
+    try {
+        const response = await api.get(`/health-records/documents/${documentId}/download`, {
+            responseType: 'blob'
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error downloading health document:", error);
+        throw new Error("Failed to download health document");
+    }
+}
+
+// Create default address for testing
+export const createDefaultAddressForTest = async () => {
+    try {
+        const response = await api.post('/location/debug/create-default-address');
+        return response.data;
+    } catch (error) {
+        console.error("Error creating default address:", error);
+        throw new Error("Failed to create default address");
+    }
+}
+
+// Check if user has default address
+export const checkDefaultAddress = async () => {
+    try {
+        const response = await api.get('/location/check-default-address');
+        return response.data;
+    } catch (error) {
+        console.error("Error checking default address:", error);
+        throw new Error("Failed to check default address");
     }
 }
 

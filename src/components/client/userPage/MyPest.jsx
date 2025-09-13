@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { getMyPets, createPet, updatePet, updatePetStatus, getPetHealthRecords, deletePet } from "../../../api/user.js";
+import { 
+    getMyPets, 
+    createPet, 
+    updatePet, 
+    updatePetStatus, 
+    getPetHealthRecords, 
+    getHealthRecord,
+    createHealthRecord,
+    uploadHealthDocument,
+    deleteHealthRecord,
+    deleteHealthDocument,
+    downloadHealthDocument,
+    debugPetHealthRecords,
+    deletePet 
+} from "../../../api/user.js";
 
 export default function MyPest() {
     const [pets, setPets] = useState([]);
@@ -7,6 +21,9 @@ export default function MyPest() {
     const [selectedPet, setSelectedPet] = useState(null);
     const [healthRecords, setHealthRecords] = useState([]);
     const [showHealthRecords, setShowHealthRecords] = useState(false);
+    const [selectedHealthRecord, setSelectedHealthRecord] = useState(null);
+    const [showHealthRecordDetail, setShowHealthRecordDetail] = useState(false);
+    const [showAddHealthRecord, setShowAddHealthRecord] = useState(false);
     const [editingPet, setEditingPet] = useState(null);
     const [showAddForm, setShowAddForm] = useState(false);
     const [editForm, setEditForm] = useState({
@@ -24,7 +41,15 @@ export default function MyPest() {
         notes: "",
         status: "ACTIVE"
     });
+    const [healthRecordForm, setHealthRecordForm] = useState({
+        petId: "",
+        visitTime: "",
+        diagnosis: "",
+        treatment: "",
+        notes: ""
+    });
     const [selectedFile, setSelectedFile] = useState(null);
+    const [selectedHealthDoc, setSelectedHealthDoc] = useState(null);
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState('');
@@ -67,12 +92,164 @@ export default function MyPest() {
         try {
             setMessage('');
             setMessageType('');
+            
+
+            console.log("Debug: Checking health records for pet:", petId);
+            const debugData = await debugPetHealthRecords(petId);
+            console.log("Debug data:", debugData);
+            
             const records = await getPetHealthRecords(petId);
+            console.log("Health records:", records);
             setHealthRecords(records);
+            setSelectedPet(pets.find(pet => pet.id === petId));
             setShowHealthRecords(true);
         } catch (error) {
             console.error("Error fetching health records:", error);
             setMessage('Failed to fetch health records.');
+            setMessageType('error');
+        }
+    };
+
+    const handleViewHealthRecordDetail = async (recordId) => {
+        try {
+            setMessage('');
+            setMessageType('');
+            const record = await getHealthRecord(recordId);
+            setSelectedHealthRecord(record);
+            setShowHealthRecordDetail(true);
+        } catch (error) {
+            console.error("Error fetching health record detail:", error);
+            setMessage('Failed to fetch health record details.');
+            setMessageType('error');
+        }
+    };
+
+    const handleAddHealthRecord = (petId) => {
+        setHealthRecordForm({
+            petId: petId,
+            visitTime: new Date().toISOString().slice(0, 16),
+            diagnosis: "",
+            treatment: "",
+            notes: ""
+        });
+        setSelectedHealthDoc(null);
+        setShowAddHealthRecord(true);
+    };
+
+    const handleSaveHealthRecord = async () => {
+        try {
+            setSubmitting(true);
+            setMessage('');
+            setMessageType('');
+            
+            const record = await createHealthRecord(healthRecordForm);
+            
+            if (selectedHealthDoc) {
+                await uploadHealthDocument(record.id, selectedHealthDoc, 'OTHER');
+            }
+            
+            setMessage('Health record created successfully.');
+            setMessageType('success');
+            setShowAddHealthRecord(false);
+            setSelectedHealthDoc(null);
+            
+            if (selectedPet) {
+                const records = await getPetHealthRecords(selectedPet.id);
+                setHealthRecords(records);
+            }
+        } catch (error) {
+            console.error("Error creating health record:", error);
+            setMessage('Failed to create health record.');
+            setMessageType('error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteHealthRecord = async (recordId) => {
+        if (!window.confirm("Are you sure you want to delete this health record?")) return;
+        
+        try {
+            setMessage('');
+            setMessageType('');
+            await deleteHealthRecord(recordId);
+            setMessage('Health record deleted successfully.');
+            setMessageType('success');
+            
+            if (selectedPet) {
+                const records = await getPetHealthRecords(selectedPet.id);
+                setHealthRecords(records);
+            }
+        } catch (error) {
+            console.error("Error deleting health record:", error);
+            setMessage('Failed to delete health record.');
+            setMessageType('error');
+        }
+    };
+
+    const handleDeleteHealthDocument = async (documentId) => {
+        if (!window.confirm("Are you sure you want to delete this document?")) return;
+        
+        try {
+            setMessage('');
+            setMessageType('');
+            await deleteHealthDocument(documentId);
+            setMessage('Document deleted successfully.');
+            setMessageType('success');
+            
+            if (selectedHealthRecord) {
+                const record = await getHealthRecord(selectedHealthRecord.id);
+                setSelectedHealthRecord(record);
+            }
+        } catch (error) {
+            console.error("Error deleting document:", error);
+            setMessage('Failed to delete document.');
+            setMessageType('error');
+        }
+    };
+
+    const handleHealthDocChange = (e) => {
+        const file = e.target.files[0];
+        setSelectedHealthDoc(file);
+    };
+
+    const handleViewDocument = async (doc) => {
+        try {
+            console.log("Attempting to download document:", doc);
+            
+            if (!doc.id) {
+                setMessage('Document ID not available');
+                setMessageType('error');
+                return;
+            }
+
+            // Download file using API
+            const blob = await downloadHealthDocument(doc.id);
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            
+            // Set filename based on document type
+            const extension = doc.docType === 'XRAY' ? 'png' : 
+                            doc.docType === 'LAB' ? 'pdf' : 
+                            doc.docType === 'CERTIFICATE' ? 'pdf' : 'file';
+            link.download = `document_${doc.id}.${extension}`;
+            
+            // Trigger download
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Clean up
+            window.URL.revokeObjectURL(url);
+            
+            setMessage('Document downloaded successfully');
+            setMessageType('success');
+        } catch (error) {
+            console.error("Error downloading document:", error);
+            setMessage('Error downloading document. Please try again.');
             setMessageType('error');
         }
     };
@@ -128,7 +305,6 @@ export default function MyPest() {
             const w = Number(data.weightKg);
             if (Number.isNaN(w) || w <= 0) e.weightKg = "Weight must be a number > 0";
         }
-        // birthDate optional but must be valid and not in the future
         if (!isEmpty(data.birthDate)) {
             const d = new Date(data.birthDate);
             if (isNaN(d.getTime())) e.birthDate = "Invalid birth date";
@@ -137,7 +313,6 @@ export default function MyPest() {
                 if (d > today) e.birthDate = "Birth date cannot be in the future";
             }
         }
-        // lastVetVisit optional and not in the future
         if (!isEmpty(data.lastVetVisit)) {
             const d2 = new Date(data.lastVetVisit);
             if (isNaN(d2.getTime())) e.lastVetVisit = "Invalid visit date";
@@ -152,7 +327,6 @@ export default function MyPest() {
 
     const handleSaveEdit = async () => {
         try {
-            // Validate before submit
             const v = validatePetForm(editForm);
             setErrors(v);
             if (Object.keys(v).length > 0) {
@@ -230,7 +404,6 @@ export default function MyPest() {
         </div>
 
         <div className="modal-body pt-0">
-          {/* BASIC INFO */}
           <div className="mb-3 pb-2 border-bottom">
             <h6 className="mb-2">Basic Info</h6>
             <div className="row">
@@ -293,7 +466,6 @@ export default function MyPest() {
             </div>
           </div>
 
-          {/* PHYSICAL INFO */}
           <div className="mb-3 pb-2 border-bottom">
             <h6 className="mb-2">Physical Info</h6>
             <div className="row">
@@ -353,7 +525,6 @@ export default function MyPest() {
             </div>
           </div>
 
-          {/* HEALTH & STATUS */}
           <div className="mb-3 pb-2 border-bottom">
             <h6 className="mb-2">Health & Status</h6>
             <div className="row">
@@ -409,7 +580,6 @@ export default function MyPest() {
             </div>
           </div>
 
-          {/* MEDIA & NOTES */}
           <div>
             <h6 className="mb-2">Media & Notes</h6>
             <div className="form-group mb-3">
@@ -573,13 +743,22 @@ export default function MyPest() {
                     </table>
                 </div>
 
-                {/* Health Records Modal */}
                 {showHealthRecords && (
                     <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
-                        <div className="modal-dialog modal-lg">
+                        <div className="modal-dialog modal-xl">
                             <div className="modal-content">
                                 <div className="modal-header">
-                                    <h5 className="modal-title">Health Records</h5>
+                                    <h5 className="modal-title">
+                                        Health Records - {selectedPet?.name}
+                                    </h5>
+                                    <div className="d-flex gap-2">
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary btn-sm"
+                                            onClick={() => handleAddHealthRecord(selectedPet?.id)}
+                                        >
+                                            <i className="fas fa-plus"></i> Add Record
+                                        </button>
                                     <button
                                         type="button"
                                         className="close"
@@ -587,30 +766,66 @@ export default function MyPest() {
                                     >
                                         <span>&times;</span>
                                     </button>
+                                    </div>
                                 </div>
                                 <div className="modal-body">
                                     {healthRecords.length === 0 ? (
+                                        <div className="text-center py-4">
                                         <p>No health records found.</p>
+                                            <button
+                                                className="btn btn-primary"
+                                                onClick={() => handleAddHealthRecord(selectedPet?.id)}
+                                            >
+                                                Add First Health Record
+                                            </button>
+                                        </div>
                                     ) : (
                                         <div className="table-responsive">
                                             <table className="table table-striped">
                                                 <thead>
                                                     <tr>
-                                                        <th>Event Type</th>
-                                                        <th>Date</th>
+                                                        <th>Visit Date</th>
                                                         <th>Vet Name</th>
-                                                        <th>Clinic</th>
-                                                        <th>Description</th>
+                                                        <th>Diagnosis</th>
+                                                        <th>Treatment</th>
+                                                        <th>Documents</th>
+                                                        <th>Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {healthRecords.map((record, index) => (
-                                                        <tr key={index}>
-                                                            <td>{record.eventType}</td>
-                                                            <td>{formatDate(record.eventDate)}</td>
-                                                            <td>{record.vetName}</td>
-                                                            <td>{record.clinic}</td>
-                                                            <td>{record.description}</td>
+                                                    {healthRecords.map((record) => (
+                                                        <tr key={record.id}>
+                                                            <td>{formatDate(record.visitTime)}</td>
+                                                            <td>{record.vetName || 'N/A'}</td>
+                                                            <td>{record.diagnosis || 'N/A'}</td>
+                                                            <td>{record.treatment || 'N/A'}</td>
+                                                            <td>
+                                                                {record.documents && record.documents.length > 0 ? (
+                                                                    <span className="badge badge-info">
+                                                                        {record.documents.length} file(s)
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-muted">No files</span>
+                                                                )}
+                                                            </td>
+                                                            <td>
+                                                                <div className="btn-group" role="group">
+                                                                    <button
+                                                                        className="btn btn-sm btn-info"
+                                                                        onClick={() => handleViewHealthRecordDetail(record.id)}
+                                                                        title="View Details"
+                                                                    >
+                                                                        <i className="fas fa-eye"></i>
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-sm btn-danger"
+                                                                        onClick={() => handleDeleteHealthRecord(record.id)}
+                                                                        title="Delete Record"
+                                                                    >
+                                                                        <i className="fas fa-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -632,10 +847,208 @@ export default function MyPest() {
                     </div>
                 )}
 
-                {/* Add Pet Modal */}
+                {showHealthRecordDetail && selectedHealthRecord && (
+                    <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">Health Record Details</h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={() => setShowHealthRecordDetail(false)}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="row">
+                                        <div className="col-md-6">
+                                            <h6>Visit Information</h6>
+                                            <p><strong>Date:</strong> {formatDate(selectedHealthRecord.visitTime)}</p>
+                                            <p><strong>Vet:</strong> {selectedHealthRecord.vetName || 'N/A'}</p>
+                                            <p><strong>Pet:</strong> {selectedHealthRecord.petName}</p>
+                                        </div>
+                                        <div className="col-md-6">
+                                            <h6>Medical Information</h6>
+                                            <p><strong>Diagnosis:</strong> {selectedHealthRecord.diagnosis || 'N/A'}</p>
+                                            <p><strong>Treatment:</strong> {selectedHealthRecord.treatment || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {selectedHealthRecord.notes && (
+                                        <div className="mt-3">
+                                            <h6>Notes</h6>
+                                            <p>{selectedHealthRecord.notes}</p>
+                                        </div>
+                                    )}
+
+                                    {selectedHealthRecord.documents && selectedHealthRecord.documents.length > 0 && (
+                                        <div className="mt-3">
+                                            <h6>Medical Documents</h6>
+                                            <div className="row">
+                                                {selectedHealthRecord.documents.map((doc) => {
+                                                    console.log("Document data:", doc);
+                                                    return (
+                                                        <div key={doc.id} className="col-md-4 mb-3">
+                                                            <div className="card">
+                                                                <div className="card-body">
+                                                                    <h6 className="card-title">
+                                                                        {doc.docType || 'Document'}
+                                                                    </h6>
+                                                                    <p className="card-text">
+                                                                        <small className="text-muted">
+                                                                            Uploaded: {formatDate(doc.uploadedAt)}
+                                                                        </small>
+                                                                    </p>
+
+                                                                <div className="btn-group" role="group">
+                                                                    <button
+                                                                        className="btn btn-sm btn-primary"
+                                                                        onClick={() => handleViewDocument(doc)}
+                                                                        title="Download Document"
+                                                                    >
+                                                                        <i className="fas fa-download"></i> Download
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-sm btn-danger"
+                                                                        onClick={() => handleDeleteHealthDocument(doc.id)}
+                                                                        title="Delete Document"
+                                                                    >
+                                                                        <i className="fas fa-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowHealthRecordDetail(false)}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {showAddHealthRecord && (
+                    <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+                        <div className="modal-dialog modal-lg">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">Add Health Record</h5>
+                                    <button
+                                        type="button"
+                                        className="close"
+                                        onClick={() => setShowAddHealthRecord(false)}
+                                    >
+                                        <span>&times;</span>
+                                    </button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="form-group mb-3">
+                                        <label>Visit Date & Time</label>
+                                        <input
+                                            type="datetime-local"
+                                            className="form-control"
+                                            value={healthRecordForm.visitTime}
+                                            onChange={(e) => setHealthRecordForm({
+                                                ...healthRecordForm,
+                                                visitTime: e.target.value
+                                            })}
+                                        />
+                                    </div>
+                                    
+                                    <div className="form-group mb-3">
+                                        <label>Diagnosis</label>
+                                        <textarea
+                                            className="form-control"
+                                            rows="3"
+                                            placeholder="Enter diagnosis..."
+                                            value={healthRecordForm.diagnosis}
+                                            onChange={(e) => setHealthRecordForm({
+                                                ...healthRecordForm,
+                                                diagnosis: e.target.value
+                                            })}
+                                        />
+                                    </div>
+                                    
+                                    <div className="form-group mb-3">
+                                        <label>Treatment</label>
+                                        <textarea
+                                            className="form-control"
+                                            rows="3"
+                                            placeholder="Enter treatment details..."
+                                            value={healthRecordForm.treatment}
+                                            onChange={(e) => setHealthRecordForm({
+                                                ...healthRecordForm,
+                                                treatment: e.target.value
+                                            })}
+                                        />
+                                    </div>
+                                    
+                                    <div className="form-group mb-3">
+                                        <label>Notes</label>
+                                        <textarea
+                                            className="form-control"
+                                            rows="3"
+                                            placeholder="Additional notes..."
+                                            value={healthRecordForm.notes}
+                                            onChange={(e) => setHealthRecordForm({
+                                                ...healthRecordForm,
+                                                notes: e.target.value
+                                            })}
+                                        />
+                                    </div>
+                                    
+                                    <div className="form-group mb-3">
+                                        <label>Medical Document (Optional)</label>
+                                        <input
+                                            type="file"
+                                            className="form-control-file"
+                                            accept="image/*,.pdf"
+                                            onChange={handleHealthDocChange}
+                                        />
+                                        <small className="text-muted">
+                                            Upload medical documents, X-rays, lab results, etc.
+                                        </small>
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        onClick={() => setShowAddHealthRecord(false)}
+                                        disabled={submitting}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary"
+                                        onClick={handleSaveHealthRecord}
+                                        disabled={submitting}
+                                    >
+                                        {submitting ? "Saving..." : "Save Health Record"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+    
                 {showAddForm && renderPetForm("Add New Pet", false)}
 
-                {/* Edit Pet Modal */}
                 {editingPet && renderPetForm(`Edit Pet: ${editingPet.name}`, true)}
             </div>
         </div>

@@ -29,9 +29,12 @@ import ShelterLayout from "./components/shelter/ShelterLayout.jsx";
 import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";
 import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 import VetFinderPage from "./pages/client/VetFinderPage.jsx"
+import NearbyVets from "./pages/client/NearbyVets.jsx";
+import NearbyShelters from "./pages/client/NearbyShelters.jsx";
 import AdoptionListing from "./pages/client/AdoptionListing.jsx";
 import ProductsPage from "./pages/admin/products/ProductsPage.jsx";
 import ContactPage from "./pages/client/ContactPage.jsx";
+
 
 export default function App() {
   return (
@@ -51,6 +54,7 @@ export default function App() {
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/vets" element={<VetFinderPage />} />
+          <Route path="/nearby-vets" element={<NearbyVets />} />
           <Route path="/adoption" element={<AdoptionListing />} />
           <Route path="/contact" element={<ContactPage />} />
 
@@ -70,6 +74,7 @@ export default function App() {
             <Route path="role-request" element={<RolesPage />} />
             <Route path="charts" element={<ChartAdmin />} />
             <Route path="products" element={<ProductsPage />} />
+
           </Route>
           {/* Vet routes */}
           <Route

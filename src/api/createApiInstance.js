@@ -30,6 +30,10 @@ const createApiInstance = (baseURL) => {
     const PUBLIC_401_ALLOWLIST = [
         "/user/vets/getAllVet",
         "/user/vets/search",
+        "/user/location/nearby/vets/coordinates",
+        "/user/location/nearby/shelters/coordinates",
+        "/user/location/geocode",
+        "/user/location/debug/vets-with-location",
     ];
 
     api.interceptors.response.use(

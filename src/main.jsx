@@ -9,6 +9,7 @@ import './assets/css/plugins/fancybox.min.css'
 import './assets/css/plugins/font-awesome.min.css'
 import './assets/css/plugins/nice-select.css'
 import './assets/css/plugins/range-slider.css'
+import './assets/css/location-search.css'
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';

@@ -168,10 +168,8 @@ export default function AllVets() {
     return (
         <section className="product-area section-space">
             <div className="container">
-                <div className="section-title text-center">
                     <h2 className="title">Find a Veterinarian</h2>
                     <p>Search and book an appointment.</p>
-                </div>
 
                 <form className="mb-4" onSubmit={doSearch}>
                     <div className="row">
@@ -271,7 +269,6 @@ export default function AllVets() {
     );
 }
 
-// Inline styles for modal (scoped)
 const style = document.createElement("style");
 style.innerHTML = `
 .vf-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
