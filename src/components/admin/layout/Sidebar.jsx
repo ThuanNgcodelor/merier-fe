@@ -82,7 +82,7 @@ const Sidebar = () => {
       <hr className="sidebar-divider" />
 
       <div className="sidebar-heading" style={{ color: '#1D3557' }}>Utilities</div>
-<li className="nav-item">
+      <li className="nav-item">
         <Link
           className="nav-link"
           to="/admin/charts"

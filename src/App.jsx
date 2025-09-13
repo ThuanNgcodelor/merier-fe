@@ -16,8 +16,6 @@ import DataTablesPage from "./pages/admin/DataTablesPage.jsx";
 import VetPortal from "./pages/vet/VetPortal.jsx";
 import VetDashboard from "./pages/vet/VetDashboard.jsx";
 import VetAppointments from "./pages/vet/VetAppointments.jsx";
-import VetHealthRecords from "./pages/vet/VetHealthRecords.jsx";
-import VetArticles from "./pages/vet/VetArticles.jsx";
 import VetProfile from "./pages/vet/VetProfile.jsx";
 import ChartAdmin from "./pages/admin/ChartAdmin.jsx";
 import OrdersPage from "./pages/admin/OrdersPage.jsx";
@@ -30,11 +28,11 @@ import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";
 import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 import VetFinderPage from "./pages/client/VetFinderPage.jsx"
 import NearbyVets from "./pages/client/NearbyVets.jsx";
-import NearbyShelters from "./pages/client/NearbyShelters.jsx";
 import AdoptionListing from "./pages/client/AdoptionListing.jsx";
 import ProductsPage from "./pages/admin/products/ProductsPage.jsx";
 import ContactPage from "./pages/client/ContactPage.jsx";
-
+import Logout from "./components/admin/Logout.jsx";
+import ProductDetailPage from "./pages/client/ProductDetailPage.jsx";
 
 export default function App() {
   return (
@@ -57,7 +55,7 @@ export default function App() {
           <Route path="/nearby-vets" element={<NearbyVets />} />
           <Route path="/adoption" element={<AdoptionListing />} />
           <Route path="/contact" element={<ContactPage />} />
-
+            <Route path="/product/:id" element={<ProductDetailPage />} />
           {/* Admin routes */}
           <Route
             path="/admin/*"
@@ -74,6 +72,7 @@ export default function App() {
             <Route path="role-request" element={<RolesPage />} />
             <Route path="charts" element={<ChartAdmin />} />
             <Route path="products" element={<ProductsPage />} />
+            <Route path="logout" element={<Logout />} />
 
           </Route>
           {/* Vet routes */}
@@ -87,8 +86,6 @@ export default function App() {
           >
             <Route index element={<VetDashboard />} />
             <Route path="appointments" element={<VetAppointments />} />
-            <Route path="records" element={<VetHealthRecords />} />
-            <Route path="articles" element={<VetArticles />} />
             <Route path="profile" element={<VetProfile />} />
           </Route>
 

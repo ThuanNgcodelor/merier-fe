@@ -3,7 +3,11 @@ import createApiInstance from "./createApiInstance.js";
 const API_URL = "/v1";
 const api = createApiInstance(API_URL);
 
-export const fetchProducts = (params = {}) => {
+export const fetchProducts = () => {
+    return api.get("/stock/product/list");
+};
+
+export const fetchProductPage = (params = {}) => {
     return api.get("/stock/product/listPage", { params });
 };
 

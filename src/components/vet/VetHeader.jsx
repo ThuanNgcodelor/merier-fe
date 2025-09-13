@@ -47,16 +47,6 @@ export default function VetHeader() {
               </NavLink>
             </li>
             <li className="nav-item">
-              <NavLink to="/vet/records" className="nav-link" onClick={close}>
-                Health Records
-              </NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink to="/vet/articles" className="nav-link" onClick={close}>
-                Articles
-              </NavLink>
-            </li>
-            <li className="nav-item">
               <NavLink to="/vet/profile" className="nav-link" onClick={close}>
                 Profile
               </NavLink>
