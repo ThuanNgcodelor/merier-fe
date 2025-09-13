@@ -7,11 +7,13 @@ import React, {
   useState,
 } from "react";
 import { getAllOrders, updateOrderStatus } from "../../api/order";
+import {getAllUser} from "../../api/user.js";
 import Modal from "bootstrap/js/dist/modal";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
   const [keyword, setKeyword] = useState("");
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
@@ -41,7 +43,7 @@ export default function OrdersPage() {
 
   const normalizeOrder = (o) => ({
     id: o?.id ?? "-",
-    customer: o?.userId ? `User #${o.userId}` : "-",
+    customer: o?.userId ? `${o.userId}` : "-",
     createdAt: o?.creationTimestamp ?? null,
     updatedAt: o?.updateTimestamp ?? null,
     total: o?.totalPrice ?? 0,
@@ -56,6 +58,8 @@ export default function OrdersPage() {
   // Refetch helper (trả về list đã normalize để dùng tiếp)
   const loadOrders = useCallback(async () => {
     try {
+      const usersData = await getAllUser();
+      setUsers(usersData);
       setLoading(true);
       setError(null);
       const data = await getAllOrders();
@@ -121,6 +125,12 @@ export default function OrdersPage() {
   const closeModal = () => {
     modalInstanceRef.current?.hide();
     setActive(null);
+  };
+  const handleName = (id) => {
+    console.log(users);
+    const name = users.find((u) => String(u.id) === String(id))?.username || id;
+    console.log("Name: ", name);
+    return name;
   };
 
   // Approve → update API → cập nhật bảng (không reload)
@@ -201,7 +211,7 @@ export default function OrdersPage() {
                   ) : (
                     visible.map((o) => (
                       <tr key={o.id}>
-                        <td>{o.customer}</td>
+                        <td>{handleName(o.customer)}</td>
                         <td>{formatDate(o.createdAt)}</td>
                         <td>{formatMoney(o.total)}</td>
                         <td>

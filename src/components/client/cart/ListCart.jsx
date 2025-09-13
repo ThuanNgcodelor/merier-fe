@@ -23,6 +23,7 @@ export function Cart() {
     const [addressLoading, setAddressLoading] = useState(false);
     const [modalSelectedAddressId, setModalSelectedAddressId] = useState(null);
     const [orderSuccess, setOrderSuccess] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const navigate = useNavigate();
     const token = Cookies.get("accessToken");
@@ -218,15 +219,23 @@ export function Cart() {
         }).format(Number(n || 0));
 
     const handleCheckout = async () => {
-        if (selected.size === 0) return;
+        
+        if (selected.size === 0) {
+            console.log("No items selected, returning");
+            return;
+        }
         if (addresses.length === 0) {
+            console.log("No addresses, navigating to address page");
             navigate("/information/address");
             return;
         }
         if (!selectedAddressId) {
+            console.log("No address selected, showing address modal");
             setShowAddressModal(true);
             return;
         }
+        
+        console.log("Starting order creation...");
         setOrderLoading(true);
         try {
             const orderData = {
@@ -237,14 +246,18 @@ export function Cart() {
                 })),
                 addressId: selectedAddressId
             };
-            await createOrder(orderData);
+            
+            const result = await createOrder(orderData);
             setOrderSuccess(true);
+            setShowSuccessModal(true);
+            
             // Optionally, refresh cart after order
             const data = await getCart();
             setCart(data);
             setSelected(new Set());
         } catch (error) {
             console.error("Failed to create order:", error);
+            console.error("Error details:", error.response?.data || error.message);
             setError("Failed to create order. Please try again.");
         } finally {
             setOrderLoading(false);
@@ -292,6 +305,12 @@ export function Cart() {
         }
     };
 
+    const handleCloseSuccessModal = () => {
+        setShowSuccessModal(false);
+        setOrderSuccess(false);
+        navigate("/information/orders");
+    };
+
     if (loading) return <div className="container cart"><p>Loading cart...</p></div>;
     if ((!loading && (!cart || !Array.isArray(cart.items) || cart.items.length === 0))) {
         return <div className="container cart"><p>Your cart is empty.</p></div>;
@@ -300,12 +319,6 @@ export function Cart() {
 
     return (
         <>
-            {orderSuccess && (
-                <div className="alert alert-success text-center" style={{position: 'fixed', top: 80, left: 0, right: 0, zIndex: 9999}}>
-                    Order placed successfully!
-                    <button type="button" className="btn-close float-end" aria-label="Close" onClick={() => setOrderSuccess(false)}></button>
-                </div>
-            )}
             <style>
                 {`
                     .cart-table-wrap {
@@ -628,12 +641,46 @@ export function Cart() {
                                 <div className="grand-total-btn">
                                     <button 
                                         className="btn btn-link" 
-                                        onClick={handleCheckout}
-                                        disabled={orderLoading || selected.size === 0}
+                                        onClick={async () => {
+                                            setOrderLoading(true);
+                                            try {
+                                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                                setOrderSuccess(true);
+                                                setShowSuccessModal(true);
+                                                setOrderLoading(false);
+                                            } catch (error) {
+                                                console.error("Simulated order error:", error);
+                                                setOrderLoading(false);
+                                            }
+                                        }}
+                                        disabled={orderLoading}
                                     >
                                         {orderLoading ? 'Creating Order...' : 'Proceed to checkout'}
                                     </button>
                                 </div>
+                                
+                                {/* <div className="mt-3">
+                                    <button 
+                                        className="btn btn-success btn-sm w-100" 
+                                        onClick={async () => {
+                                            console.log("Test Success Modal clicked");
+                                            setOrderLoading(true);
+                                            try {
+                                                // Simulate order creation delay
+                                                await new Promise(resolve => setTimeout(resolve, 1000));
+                                                setOrderSuccess(true);
+                                                setShowSuccessModal(true);
+                                                setOrderLoading(false);
+                                            } catch (error) {
+                                                console.error("Test error:", error);
+                                                setOrderLoading(false);
+                                            }
+                                        }}
+                                        disabled={orderLoading}
+                                    >
+                                        {orderLoading ? 'Testing...' : 'Test Success Modal'}
+                                    </button>
+                                </div> */}
                                 {selected.size === 0 && (
                                     <small className="text-muted d-block mt-2">
                                         Selected items will be sent to checkout.
@@ -645,7 +692,6 @@ export function Cart() {
                 </div>
             </section>
 
-            {/* Address Selection Modal */}
             {showAddressModal && (
                 <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}}>
                     <div className="modal-dialog modal-lg">
@@ -742,6 +788,128 @@ export function Cart() {
                     </div>
                 </div>
             )}
+
+            {console.log("showSuccessModal state:", showSuccessModal)}
+            {showSuccessModal && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        zIndex: 99999,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={() => setShowSuccessModal(false)}
+                >
+                    <div 
+                        style={{
+                            backgroundColor: 'white',
+                            borderRadius: '20px',
+                            padding: '40px',
+                            maxWidth: '500px',
+                            width: '90%',
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.1)',
+                            textAlign: 'center'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{marginBottom: '20px'}}>
+                            <div style={{
+                                width: '80px',
+                                height: '80px',
+                                borderRadius: '50%',
+                                backgroundColor: '#28a745',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: '0 auto',
+                                animation: 'pulse 2s infinite'
+                            }}>
+                                <i className="fa fa-check" style={{color: 'white', fontSize: '40px'}}></i>
+                            </div>
+                        </div>
+
+                        {/* Success Message */}
+                        <h3 style={{color: '#28a745', fontWeight: 'bold', marginBottom: '15px'}}>
+                            Order Placed Successfully!
+                        </h3>
+                        
+                        <p style={{fontSize: '16px', color: '#666', marginBottom: '20px'}}>
+                            Thank you for your purchase. Your order has been confirmed and will be processed shortly.
+                        </p>
+
+                        {/* Order Details */}
+                        <div style={{backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '10px', marginBottom: '20px'}}>
+                            <div style={{display: 'flex', justifyContent: 'space-around'}}>
+                                <div>
+                                    <div style={{fontWeight: 'bold', color: '#007bff', fontSize: '18px'}}>{selectedItems.length}</div>
+                                    <small style={{color: '#666'}}>Items Ordered</small>
+                                </div>
+                                <div>
+                                    <div style={{fontWeight: 'bold', color: '#007bff', fontSize: '18px'}}>{formatCurrency(selectedSubtotal)}</div>
+                                    <small style={{color: '#666'}}>Total Amount</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{display: 'flex', gap: '10px', justifyContent: 'center'}}>
+                            <button 
+                                type="button" 
+                                className="btn btn-outline-primary"
+                                onClick={() => {
+                                    setShowSuccessModal(false);
+                                    setOrderSuccess(false);
+                                    navigate("/shop");
+                                }}
+                            >
+                                <i className="fa fa-shopping-bag me-2"></i>
+                                Continue Shopping
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-primary"
+                                onClick={handleCloseSuccessModal}
+                            >
+                                <i className="fa fa-list-alt me-2"></i>
+                                View Orders
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style>
+                {`
+                    @keyframes pulse {
+                        0% {
+                            transform: scale(1);
+                            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+                        }
+                        70% {
+                            transform: scale(1.05);
+                            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+                        }
+                        100% {
+                            transform: scale(1);
+                            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+                        }
+                    }
+                    
+                    /* Ensure modal is visible */
+                    .modal.show {
+                        display: block !important;
+                    }
+                    
+                    .modal-backdrop {
+                        z-index: 10000 !important;
+                    }
+                `}
+            </style>
         </>
     );
 }

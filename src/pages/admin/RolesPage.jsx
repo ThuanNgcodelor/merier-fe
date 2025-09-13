@@ -5,6 +5,7 @@ import {
   getUserRequests,
   rejectRequest,
 } from "../../api/role_request";
+import {getAllUser} from "../../api/user.js";
 
 // Số dòng mỗi trang
 const pageSize = 8;
@@ -45,6 +46,7 @@ const normalizeReq = (r) => {
 
 export default function RolesPage() {
   const [roles, setRoles] = useState([]);
+  const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,8 @@ export default function RolesPage() {
   // Tải dữ liệu động từ API
   const load = async () => {
     try {
+      const usersData = await getAllUser();
+      setUsers(usersData);
       setLoading(true);
       setError(null);
 
@@ -110,7 +114,12 @@ export default function RolesPage() {
       setUpdating(null);
     }
   };
-
+const handleName = (id) => {
+    console.log(users);
+    const name = users.find((u) => String(u.id) === String(id))?.username || id;
+    console.log("Name: ", name);
+    return name;
+  };
   // Lọc theo tìm kiếm
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -168,7 +177,7 @@ export default function RolesPage() {
           <div className="mb-3">
             <input
               type="text"
-              placeholder="Tìm theo tên / role / lý do..."
+              placeholder="Search by name / role / reason..."
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -203,7 +212,7 @@ export default function RolesPage() {
                   current.map((r) => (
                     <tr key={r.id}>
                       <td className="text-start">
-                        <div className="fw-semibold">{r.name}</div>
+                        <div className="fw-semibold">{handleName(r.name)}</div>
                       </td>
                       <td>
                         <span className="badge bg-primary-subtle text-primary border border-primary-subtle">

@@ -31,13 +31,14 @@ import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 import VetFinderPage from "./pages/client/VetFinderPage.jsx"
 import AdoptionListing from "./pages/client/AdoptionListing.jsx";
 import ProductsPage from "./pages/admin/products/ProductsPage.jsx";
+import ContactPage from "./pages/client/ContactPage.jsx";
 
 export default function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<HomePage />} /> 
+          <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/register" element={<AuthPage />} />
           <Route path="/auth" element={<AuthPage />} />
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/vets" element={<VetFinderPage />} />
           <Route path="/adoption" element={<AdoptionListing />} />
+          <Route path="/contact" element={<ContactPage />} />
 
           {/* Admin routes */}
           <Route

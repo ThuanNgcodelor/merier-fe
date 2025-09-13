@@ -101,6 +101,7 @@ export default function Header() {
               >
                 <li><Link to="/shop">Shop</Link></li>
                 <li><Link to="/adoption">Adoption</Link></li>
+                <li><Link to="/Contact">Contact</Link></li>
 
 
                 {!authed ? (
