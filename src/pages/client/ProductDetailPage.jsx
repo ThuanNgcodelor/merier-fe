@@ -133,7 +133,7 @@ export default function ProductDetailPage() {
               <div className="col-md-6">
                 <h2 className="mb-4">{product.name}</h2>
                 <div className="mb-4">{priceDisplay}</div>
-                <div className="mb-4">
+                <div className="mb-4 ">
                   <span className="badge bg-light text-dark">Stock: {product.stock ?? "-"}</span>
                   {product.status && <span className="badge bg-info ms-2">{product.status}</span>}
                   {product.category?.name && <span className="badge bg-secondary ms-2">{product.category.name}</span>}

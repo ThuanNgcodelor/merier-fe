@@ -260,16 +260,6 @@ export default function PetManagementPage() {
                 >
                   Delete
                 </button>
-                {p.adoptionStatus === "PENDING" && (
-                  <>
-                    <button className="btn btn-success btn-sm" onClick={() => onApprove(p)}>
-                      Approve
-                    </button>
-                    <button className="btn btn-outline-secondary btn-sm" onClick={() => onReject(p)}>
-                      Reject
-                    </button>
-                  </>
-                )}
               </div>
             </div>
           </div>
