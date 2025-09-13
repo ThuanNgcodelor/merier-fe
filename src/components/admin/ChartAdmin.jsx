@@ -604,9 +604,9 @@ function hexToRgba(hex, a = 1) {
   const bigint = parseInt(
     h.length === 3
       ? h
-        .split("")
-        .map((c) => c + c)
-        .join("")
+          .split("")
+          .map((c) => c + c)
+          .join("")
       : h,
     16
   );
@@ -815,9 +815,9 @@ function hexToRgb(hex) {
   const full =
     h.length === 3
       ? h
-        .split("")
-        .map((c) => c + c)
-        .join("")
+          .split("")
+          .map((c) => c + c)
+          .join("")
       : h;
   const bigint = parseInt(full, 16);
   return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };

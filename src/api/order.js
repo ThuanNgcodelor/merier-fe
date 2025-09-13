@@ -68,3 +68,19 @@ export const getOrderById = async (orderId) => {
         throw new Error("Failed to fetch order");
     }
 };
+
+
+export const getAllOrders = async () => {
+    try {
+        const response = await api.get("/getAll");
+        console.log(response.data);
+        return response.data;
+    } catch {
+        throw new Error("Failed to fetch cart data");
+    }
+}
+
+export async function updateOrderStatus(id) {
+    const { data } = await api.put(`update-status/${id}?status=PROCESSING`);
+    return data;
+}

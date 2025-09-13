@@ -33,7 +33,6 @@ const AllProduct = () => {
         product: null,
     });
 
-    // Giữ danh sách URL đã tạo để revoke khi cần
     const createdUrlsRef = useRef([]);
 
     useEffect(() => {

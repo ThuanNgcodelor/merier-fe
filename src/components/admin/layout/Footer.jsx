@@ -2,12 +2,24 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer className="sticky-footer bg-white">
-      <div className="container my-auto">
-        <div className="copyright text-center my-auto">
-          <span>copyright &copy; <script> document.write(new Date().getFullYear()); </script> - developed by
-            <b><a href="https://indrijunanda.gitlab.io/" target="_blank" rel="noopener noreferrer">indrijunanda</a></b>
-          </span>
+    <footer className="sticky-footer bg-petcare py-4">
+      <div className="container">
+        <div className="row justify-content-center">
+          <div className="col-12 col-md-6 text-center">
+            <span className="text-muted">
+              &copy; {new Date().getFullYear()} - Powered by{' '}
+              <b>
+                <a
+                  href="https://yourbrand.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-decoration-none text-petcare"
+                >
+                  PetCare Team
+                </a>
+              </b>
+            </span>
+          </div>
         </div>
       </div>
     </footer>
@@ -15,5 +27,3 @@ const Footer = () => {
 };
 
 export default Footer;
-
-

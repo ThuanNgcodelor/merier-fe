@@ -105,7 +105,7 @@ const DataTablesPage = () => {
       const updated = await updateUser(payload, file);
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       setEditing(null);
-      alert("Update successful!");
+      alert("Cập nhật thành công!");
     } catch (err) {
       console.error("Update error:", err);
     }

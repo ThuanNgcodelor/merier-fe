@@ -30,6 +30,7 @@ import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";
 import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
 import VetFinderPage from "./pages/client/VetFinderPage.jsx"
 import AdoptionListing from "./pages/client/AdoptionListing.jsx";
+import ProductsPage from "./pages/admin/products/ProductsPage.jsx";
 
 export default function App() {
   return (
@@ -66,7 +67,7 @@ export default function App() {
             <Route path="categories" element={<CategoriesPage />} />
             <Route path="role-request" element={<RolesPage />} />
             <Route path="charts" element={<ChartAdmin />} />
-
+            <Route path="products" element={<ProductsPage />} />
           </Route>
           {/* Vet routes */}
           <Route

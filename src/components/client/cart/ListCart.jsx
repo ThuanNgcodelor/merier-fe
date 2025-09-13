@@ -8,6 +8,7 @@ import {fetchProductById,removeCartItem} from "../../../api/product.js";
 import { createOrder } from "../../../api/order.js";
 import { getAllAddress } from "../../../api/user.js";
 
+
 export function Cart() {
     const [cart, setCart] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -21,6 +22,7 @@ export function Cart() {
     const [orderLoading, setOrderLoading] = useState(false);
     const [addressLoading, setAddressLoading] = useState(false);
     const [modalSelectedAddressId, setModalSelectedAddressId] = useState(null);
+    const [orderSuccess, setOrderSuccess] = useState(false);
 
     const navigate = useNavigate();
     const token = Cookies.get("accessToken");
@@ -217,17 +219,14 @@ export function Cart() {
 
     const handleCheckout = async () => {
         if (selected.size === 0) return;
-        
         if (addresses.length === 0) {
             navigate("/information/address");
             return;
         }
-        
         if (!selectedAddressId) {
             setShowAddressModal(true);
             return;
         }
-        
         setOrderLoading(true);
         try {
             const orderData = {
@@ -238,9 +237,12 @@ export function Cart() {
                 })),
                 addressId: selectedAddressId
             };
-            
             await createOrder(orderData);
-            navigate("/order-success");
+            setOrderSuccess(true);
+            // Optionally, refresh cart after order
+            const data = await getCart();
+            setCart(data);
+            setSelected(new Set());
         } catch (error) {
             console.error("Failed to create order:", error);
             setError("Failed to create order. Please try again.");
@@ -291,11 +293,19 @@ export function Cart() {
     };
 
     if (loading) return <div className="container cart"><p>Loading cart...</p></div>;
+    if ((!loading && (!cart || !Array.isArray(cart.items) || cart.items.length === 0))) {
+        return <div className="container cart"><p>Your cart is empty.</p></div>;
+    }
     if (error) return <div className="container cart"><p>{error}</p></div>;
-    if (!totalItems) return <div className="container cart"><p>Your cart is empty.</p></div>;
 
     return (
         <>
+            {orderSuccess && (
+                <div className="alert alert-success text-center" style={{position: 'fixed', top: 80, left: 0, right: 0, zIndex: 9999}}>
+                    Order placed successfully!
+                    <button type="button" className="btn-close float-end" aria-label="Close" onClick={() => setOrderSuccess(false)}></button>
+                </div>
+            )}
             <style>
                 {`
                     .cart-table-wrap {
@@ -472,38 +482,6 @@ export function Cart() {
 
                     <div className="row">
                         <div className="col-md-6 col-lg-4">
-                            <div className="cart-calculate-discount-wrap mb-40">
-                                <h4>Calculate shipping</h4>
-                                <div className="calculate-discount-content">
-                                    <div className="select-style">
-                                        <select className="select-active" defaultValue="Bangladesh">
-                                            <option>Bangladesh</option>
-                                            <option>Bahrain</option>
-                                            <option>Azerbaijan</option>
-                                            <option>Barbados</option>
-                                        </select>
-                                    </div>
-                                    <div className="select-style">
-                                        <select className="select-active" defaultValue="State / County">
-                                            <option>State / County</option>
-                                            <option>Bahrain</option>
-                                            <option>Azerbaijan</option>
-                                            <option>Barbados</option>
-                                        </select>
-                                    </div>
-                                    <div className="input-style">
-                                        <input type="text" placeholder="Town / City"/>
-                                    </div>
-                                    <div className="input-style mb-6">
-                                        <input type="text" placeholder="Postcode / ZIP"/>
-                                    </div>
-                                    <div className="calculate-discount-btn">
-                                        <button className="btn btn-link" type="button">
-                                            Update
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         {/* Coupon Discount */}
@@ -590,13 +568,13 @@ export function Cart() {
                                                 )}
                                             </div>
                                             <div className="d-flex gap-2 mt-2">
-                                                <button 
+                                                <button
                                                     className="btn btn-outline-primary btn-sm"
                                                     onClick={handleOpenAddressModal}
                                                 >
                                                     {selectedAddressId ? 'Change Address' : 'Select Address'}
                                                 </button>
-                                                <button 
+                                                <button
                                                     className="btn btn-outline-secondary btn-sm"
                                                     onClick={refreshAddresses}
                                                     disabled={addressLoading}
@@ -610,13 +588,13 @@ export function Cart() {
                                         <div className="selected-address p-3 border rounded bg-light">
                                             <p className="text-muted mb-2">No addresses found. Please add an address to continue.</p>
                                             <div className="d-flex gap-2">
-                                                <button 
+                                                <button
                                                     className="btn btn-primary btn-sm"
                                                     onClick={() => navigate("/information/address")}
                                                 >
                                                     Add Address
                                                 </button>
-                                                <button 
+                                                <button
                                                     className="btn btn-outline-secondary btn-sm"
                                                     onClick={refreshAddresses}
                                                     disabled={addressLoading}

@@ -1,118 +1,370 @@
-import React, { useMemo, useState } from "react";
-
-// ---- OrderPage.jsx ----
-// Layout quản lý Orders (dữ liệu cứng). Dùng trực tiếp trong app.
-// Cách dùng nhanh:
-//   import OrderPage from "./OrderPage";
-//   <OrderPage />
-
-const initialOrders = [
-  { id: 101, customer: "Nguyen Van A", total: 350000, status: "PENDING", createdAt: "2025-09-05" },
-  { id: 102, customer: "Tran Thi B", total: 120000, status: "COMPLETED", createdAt: "2025-09-08" },
-  { id: 103, customer: "Le Van C", total: 560000, status: "CANCELLED", createdAt: "2025-09-09" },
-];
+// src/pages/admin/OrdersPage.jsx
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { getAllOrders, updateOrderStatus } from "../../api/order";
+import Modal from "bootstrap/js/dist/modal";
 
 export default function OrdersPage() {
-  const [orders] = useState(initialOrders);
+  const [orders, setOrders] = useState([]);
   const [keyword, setKeyword] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+
+  // Bootstrap modal
+  const modalRef = useRef(null);
+  const modalInstanceRef = useRef(null);
+  const [active, setActive] = useState(null);
+
+  useEffect(() => {
+    if (modalRef.current) {
+      modalInstanceRef.current = new Modal(modalRef.current, {
+        backdrop: "static",
+      });
+    }
+  }, []);
+
+  // Utils
+  const formatMoney = (n) =>
+    (Number(n) || 0).toLocaleString("vi-VN", { maximumFractionDigits: 0 }) +
+    " đ";
+  const formatDate = (iso) =>
+    iso ? new Date(iso).toLocaleString("vi-VN") : "-";
+  const isPending = (s) => String(s || "").toUpperCase() === "PENDING";
+  const statusRank = (s) => (isPending(s) ? 0 : 1);
+  const toTime = (iso) => (iso ? new Date(iso).getTime() : 0);
+
+  const normalizeOrder = (o) => ({
+    id: o?.id ?? "-",
+    customer: o?.userId ? `User #${o.userId}` : "-",
+    createdAt: o?.creationTimestamp ?? null,
+    updatedAt: o?.updateTimestamp ?? null,
+    total: o?.totalPrice ?? 0,
+    status: o?.orderStatus ?? "PENDING",
+    notes: o?.notes ?? null,
+    shippingAddress: o?.shippingAddress ?? null,
+    paymentMethod: o?.paymentMethod ?? null,
+    items: Array.isArray(o?.orderItems) ? o.orderItems : [],
+    raw: o,
+  });
+
+  // Refetch helper (trả về list đã normalize để dùng tiếp)
+  const loadOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getAllOrders();
+      const list = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.items)
+          ? data.items
+          : data
+            ? [data]
+            : [];
+      const normalized = list.filter(Boolean).map(normalizeOrder);
+      setOrders(normalized);
+      return normalized;
+    } catch (e) {
+      setError(
+        e?.response?.data?.message || e.message || "Failed to load orders"
+      );
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
 
   const filtered = useMemo(() => {
-    let data = [...orders];
-    if (keyword.trim()) {
-      const q = keyword.toLowerCase();
-      data = data.filter(
-        (o) =>
-          o.customer.toLowerCase().includes(q) ||
-          String(o.id).includes(q) ||
-          o.status.toLowerCase().includes(q)
-      );
-    }
-    return data;
+    const q = keyword.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter(
+      (o) =>
+        String(o.id).toLowerCase().includes(q) ||
+        String(o.customer).toLowerCase().includes(q) ||
+        String(o.status).toLowerCase().includes(q)
+    );
   }, [orders, keyword]);
 
+  // Sort: PENDING lên đầu, cùng nhóm mới nhất trước
+  const visible = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const r = statusRank(a.status) - statusRank(b.status);
+      if (r !== 0) return r;
+      return toTime(b.createdAt) - toTime(a.createdAt);
+    });
+  }, [filtered]);
+
+  const badgeClass = (status) => {
+    const s = String(status || "").toUpperCase();
+    if (s === "PENDING" || s === "PROCESSING")
+      return "badge bg-warning text-dark";
+    if (s === "SHIPPED") return "badge bg-info";
+    if (s === "COMPLETED" || s === "DELIVERED") return "badge bg-success";
+    if (s === "CANCELLED" || s === "FAILED") return "badge bg-danger";
+    return "badge bg-secondary";
+  };
+
+  // Modal helpers
+  const openModal = (o) => {
+    setActive(o);
+    modalInstanceRef.current?.show();
+  };
+  const closeModal = () => {
+    modalInstanceRef.current?.hide();
+    setActive(null);
+  };
+
+  // Approve → update API → cập nhật bảng (không reload)
+  const onApprove = async (o) => {
+    if (!o) return;
+    try {
+      setUpdatingId(o.id);
+      const res = await updateOrderStatus(o.id);
+
+      // 1) Optimistic update nếu API trả về order đã cập nhật
+      const maybe = res?.id ? res : res?.data?.id ? res.data : null;
+      if (maybe) {
+        const normalized = normalizeOrder(maybe);
+        setOrders((prev) =>
+          prev.map((x) =>
+            String(x.id) === String(normalized.id) ? normalized : x
+          )
+        );
+        // đồng bộ modal nếu đang mở
+        setActive((prev) =>
+          prev && String(prev.id) === String(normalized.id) ? normalized : prev
+        );
+      } else {
+        // 2) Fallback: refetch danh sách và đồng bộ modal
+        const fresh = await loadOrders();
+        const updated = fresh.find((x) => String(x.id) === String(o.id));
+        if (updated) setActive((prev) => (prev ? updated : prev));
+      }
+    } catch (e) {
+      alert(e?.response?.data?.message || e.message || "Approve failed");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
-    <div style={styles.page}>
-      <header style={styles.header}>
-        <h1 style={{ margin: 0 }}>Quản lý Orders</h1>
+
+    <div class="col-lg-12 mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h1 className="h3 mb-0">Orders Management</h1>
         <input
-          placeholder="Tìm theo mã đơn / khách hàng / trạng thái"
+          className="form-control"
+          style={{ maxWidth: 360 }}
+          placeholder="Search by order ID / customer / status"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          style={styles.search}
         />
-      </header>
+      </div>
 
-      <div style={styles.card}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Mã đơn</th>
-                <th style={styles.th}>Khách hàng</th>
-                <th style={styles.th}>Ngày tạo</th>
-                <th style={styles.th}>Tổng tiền</th>
-                <th style={styles.th}>Trạng thái</th>
-                <th style={styles.th}>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ textAlign: "center", padding: 24, color: "#888" }}>
-                    Không có đơn hàng
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((o) => (
-                  <tr key={o.id}>
-                    <td style={styles.td}>#{o.id}</td>
-                    <td style={styles.td}>{o.customer}</td>
-                    <td style={styles.td}>{o.createdAt}</td>
-                    <td style={styles.td}>{o.total.toLocaleString()} đ</td>
-                    <td style={styles.td}>
-                      <span style={{ ...styles.badge, ...badgeColor(o.status) }}>{o.status}</span>
-                    </td>
-                    <td style={styles.td}>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <button style={styles.ghostBtn}>Chi tiết</button>
-                        <button style={styles.primaryBtn}>Sửa</button>
-                        <button style={styles.dangerBtn}>Xóa</button>
-                      </div>
-                    </td>
+      <div className="card">
+        <div className="card-body p-0">
+          {loading ? (
+            <div className="p-4 d-flex align-items-center gap-2">
+              <div className="spinner-border spinner-border-sm" role="status" />
+              <span>Loading…</span>
+            </div>
+          ) : error ? (
+            <div className="alert alert-danger m-3">{error}</div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Customer</th>
+                    <th>Created At</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th className="text-nowrap">Actions</th>
                   </tr>
-                ))
+                </thead>
+                <tbody>
+                  {visible.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center text-muted py-4">
+                        No orders
+                      </td>
+                    </tr>
+                  ) : (
+                    visible.map((o) => (
+                      <tr key={o.id}>
+                        <td>{o.customer}</td>
+                        <td>{formatDate(o.createdAt)}</td>
+                        <td>{formatMoney(o.total)}</td>
+                        <td>
+                          <span className={badgeClass(o.status)}>
+                            {o.status}
+                          </span>
+                        </td>
+                        <td className="text-nowrap">
+                          <button
+                            className="btn btn-outline-secondary btn-sm me-2"
+                            onClick={() => openModal(o)}
+                          >
+                            Details
+                          </button>
+                          {isPending(o.status) && (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => onApprove(o)}
+                              disabled={updatingId === o.id}
+                              title={
+                                updatingId === o.id
+                                  ? "Processing..."
+                                  : "Approve order"
+                              }
+                            >
+                              {updatingId === o.id
+                                ? "Approving…"
+                                : "Approve order"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bootstrap Modal */}
+      <div className="modal fade" tabIndex="-1" ref={modalRef}>
+        <div className="modal-dialog modal-lg modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">
+                Order Details {active ? `#${active.id}` : ""}
+              </h5>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={closeModal}
+                aria-label="Close"
+              ></button>
+            </div>
+            <div className="modal-body">
+              {!active ? null : (
+                <>
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <div className="small text-muted">Customer</div>
+                      <div>{active.customer}</div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="small text-muted">Status</div>
+                      <div>
+                        <span className={badgeClass(active.status)}>
+                          {active.status}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="small text-muted">Created At</div>
+                      <div>{formatDate(active.createdAt)}</div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="small text-muted">Updated At</div>
+                      <div>{formatDate(active.updatedAt)}</div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="small text-muted">Total</div>
+                      <div>{formatMoney(active.total)}</div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="small text-muted">Payment Method</div>
+                      <div>{active.paymentMethod || "-"}</div>
+                    </div>
+                    <div className="col-12">
+                      <div className="small text-muted">Shipping Address</div>
+                      <div>{active.shippingAddress || "-"}</div>
+                    </div>
+                    {active.notes ? (
+                      <div className="col-12">
+                        <div className="small text-muted">Notes</div>
+                        <div>{active.notes}</div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <hr className="my-3" />
+                  <h6 className="mb-2">Items</h6>
+                  {active.items?.length ? (
+                    <div className="table-responsive">
+                      <table className="table table-sm">
+                        <thead className="table-light">
+                          <tr>
+                            <th style={{ width: 60 }}>#</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {active.items.map((it, idx) => {
+                            const name =
+                              it?.productName ||
+                              it?.name ||
+                              it?.productId ||
+                              `Item ${idx + 1}`;
+                            const qty = it?.quantity ?? it?.qty ?? 1;
+                            const price = it?.price ?? it?.unitPrice ?? 0;
+                            const subtotal = (qty || 0) * (price || 0);
+                            return (
+                              <tr key={idx}>
+                                <td>{idx + 1}</td>
+                                <td>{String(name)}</td>
+                                <td>{qty}</td>
+                                <td>{formatMoney(price)}</td>
+                                <td>{formatMoney(subtotal)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="text-muted">No items</div>
+                  )}
+                </>
               )}
-            </tbody>
-          </table>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-outline-secondary"
+                onClick={closeModal}
+              >
+                Close
+              </button>
+              {active && isPending(active.status) && (
+                <button
+                  className="btn btn-primary"
+                  onClick={() => onApprove(active)}
+                  disabled={updatingId === active.id}
+                >
+                  {updatingId === active.id ? "Approving…" : "Approve order"}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-function badgeColor(status) {
-  switch (status) {
-    case "PENDING":
-      return { background: "#fef3c7", color: "#92400e" };
-    case "COMPLETED":
-      return { background: "#dcfce7", color: "#166534" };
-    case "CANCELLED":
-      return { background: "#fee2e2", color: "#991b1b" };
-    default:
-      return { background: "#f3f4f6", color: "#111827" };
-  }
-}
-
-const styles = {
-  page: { maxWidth: 1000, margin: "32px auto", padding: "0 16px", fontFamily: "Inter, system-ui, Arial" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  search: { padding: "10px 12px", border: "1px solid #d0d7de", borderRadius: 8, minWidth: 320 },
-  card: { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, boxShadow: "0 4px 16px rgba(0,0,0,0.05)" },
-  table: { width: "100%", borderCollapse: "collapse", fontSize: 14 },
-  th: { textAlign: "left", padding: "12px 14px", borderBottom: "1px solid #eee", background: "#fafafa", whiteSpace: "nowrap" },
-  td: { padding: "12px 14px", borderBottom: "1px solid #f2f2f2", verticalAlign: "middle" },
-  badge: { padding: "4px 8px", borderRadius: 999, fontSize: 12, fontWeight: 500 },
-  primaryBtn: { padding: "6px 12px", background: "#2563eb", color: "#fff", border: 0, borderRadius: 6, cursor: "pointer" },
-  ghostBtn: { padding: "6px 12px", background: "#f3f4f6", color: "#111827", border: 0, borderRadius: 6, cursor: "pointer" },
-  dangerBtn: { padding: "6px 12px", background: "#ef4444", color: "#fff", border: 0, borderRadius: 6, cursor: "pointer" },
-};

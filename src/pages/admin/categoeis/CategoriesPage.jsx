@@ -16,7 +16,7 @@ export default function CategoriesPage() {
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState(false);
   const [sortOrder, setSortOrder] = useState("asc");
-  const [dark, setDark] = useState(false); // <-- toggle giao diện
+  const [dark, setDark] = useState(false); 
 
   // load
   const load = async () => {
