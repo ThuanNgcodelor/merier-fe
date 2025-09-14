@@ -4,16 +4,22 @@ import { fetchImageById } from "../../../api/image.js";
 
 export default function AccountInfo() {
   const [form, setForm] = useState({
-    id: "", email: "", username: "",
+    id: "",
+    email: "",
+    username: "",
     userDetails: {
-      firstName: "", lastName: "", phoneNumber: "",
-      gender: "MALE", aboutMe: "", birthDate: "",
+      firstName: "",
+      lastName: "",
+      phoneNumber: "",
+      gender: "MALE",
+      aboutMe: "",
+      birthDate: "",
     },
   });
 
   const [file, setFile] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState("");
-  const prevUrlRef = useRef("");           // giữ objectURL hiện tại để revoke
+  const prevUrlRef = useRef(""); // giữ objectURL hiện tại để revoke
   const fileInputRef = useRef(null);
 
   const [loading, setLoading] = useState(false);
@@ -23,19 +29,20 @@ export default function AccountInfo() {
     (async () => {
       try {
         const me = await getUser();
-        const pickBirth = (val) => (!val ? "" : String(val).split("T")[0].split(" ")[0]);
+        const pickBirth = (val) =>
+          !val ? "" : String(val).split("T")[0].split(" ")[0];
 
         setForm({
           id: me?.id ?? "",
           email: me?.email ?? "",
           username: me?.username ?? "",
           userDetails: {
-            firstName:   me?.userDetails?.firstName   ?? me?.firstName   ?? "",
-            lastName:    me?.userDetails?.lastName    ?? me?.lastName    ?? "",
+            firstName: me?.userDetails?.firstName ?? me?.firstName ?? "",
+            lastName: me?.userDetails?.lastName ?? me?.lastName ?? "",
             phoneNumber: me?.userDetails?.phoneNumber ?? me?.phoneNumber ?? "",
-            gender:      me?.userDetails?.gender      ?? me?.gender      ?? "MALE",
-            aboutMe:     me?.userDetails?.aboutMe     ?? me?.aboutMe     ?? "",
-            birthDate:   pickBirth(me?.userDetails?.birthDate ?? me?.birthDate),
+            gender: me?.userDetails?.gender ?? me?.gender ?? "MALE",
+            aboutMe: me?.userDetails?.aboutMe ?? me?.aboutMe ?? "",
+            birthDate: pickBirth(me?.userDetails?.birthDate ?? me?.birthDate),
           },
         });
 
@@ -78,19 +85,22 @@ export default function AccountInfo() {
     const sx = (bitmap.width - size) / 2;
     const sy = (bitmap.height - size) / 2;
     const canvas = document.createElement("canvas");
-    canvas.width = size; canvas.height = size;
+    canvas.width = size;
+    canvas.height = size;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(bitmap, sx, sy, size, size, 0, 0, size, size);
     const blob = await new Promise((resolve) =>
       canvas.toBlob(resolve, file.type || "image/jpeg", 0.9)
     );
-    return new File([blob], file.name.replace(/\.\w+$/, "") + "_sq.jpg", { type: blob.type });
+    return new File([blob], file.name.replace(/\.\w+$/, "") + "_sq.jpg", {
+      type: blob.type,
+    });
   };
 
   const onFile = async (e) => {
     const picked = e.target.files?.[0] || null;
     if (!picked) return;
-    const squared = await cropToSquare(picked);     // bảo đảm vuông
+    const squared = await cropToSquare(picked); // bảo đảm vuông
     setFile(squared);
     const previewUrl = URL.createObjectURL(squared);
     if (prevUrlRef.current) URL.revokeObjectURL(prevUrlRef.current);
@@ -104,9 +114,9 @@ export default function AccountInfo() {
     setMsg("");
     try {
       await updateUser(form, file);
-      setMsg("Cập nhật thành công!");
+      setMsg("Success update!");
     } catch (err) {
-      setMsg(err?.message || "Cập nhật thất bại");
+      setMsg(err?.message || "Update failure");
     } finally {
       setLoading(false);
     }
@@ -116,14 +126,30 @@ export default function AccountInfo() {
   const avatarStyles = {
     inline: { display: "flex", alignItems: "center", gap: 12 },
     btn: {
-      width: 120, height: 120, borderRadius: 12, overflow: "hidden",
-      border: "1px solid #e5e7eb", background: "#f9fafb", padding: 0,
-      cursor: "pointer", position: "relative",
+      width: 120,
+      height: 120,
+      borderRadius: 12,
+      overflow: "hidden",
+      border: "1px solid #e5e7eb",
+      background: "#f9fafb",
+      padding: 0,
+      cursor: "pointer",
+      position: "relative",
     },
-    img: { width: "100%", height: "100%", objectFit: "cover", display: "block" },
+    img: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      display: "block",
+    },
     placeholder: {
-      width: "100%", height: "100%", display: "flex",
-      alignItems: "center", justifyContent: "center", fontSize: 32, color: "#9ca3af",
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 32,
+      color: "#9ca3af",
     },
     hint: { fontSize: 12, color: "#6b7280" },
   };
@@ -139,79 +165,113 @@ export default function AccountInfo() {
             <div className="row">
               <div className="col-lg-6">
                 <div className="single-input-item">
-                  <label htmlFor="firstName" className="required">First Name</label>
-                  <input type="text" id="firstName"
+                  <label htmlFor="firstName" className="required">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
                     value={form.userDetails.firstName}
-                    onChange={onChangeDetails}/>
+                    onChange={onChangeDetails}
+                  />
                 </div>
               </div>
               <div className="col-lg-6">
                 <div className="single-input-item">
-                  <label htmlFor="lastName" className="required">Last Name</label>
-                  <input type="text" id="lastName"
+                  <label htmlFor="lastName" className="required">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
                     value={form.userDetails.lastName}
-                    onChange={onChangeDetails}/>
+                    onChange={onChangeDetails}
+                  />
                 </div>
               </div>
             </div>
 
             <div className="single-input-item">
-              <label htmlFor="username" className="required">Display Name</label>
-              <input type="text" id="username" value={form.username} onChange={onChangeRoot}/>
+              <label htmlFor="username" className="required">
+                Display Name
+              </label>
+              <input
+                type="text"
+                id="username"
+                value={form.username}
+                onChange={onChangeRoot}
+              />
             </div>
 
             <div className="single-input-item">
-              <label htmlFor="email" className="required">Email Address</label>
-              <input type="email" id="email" value={form.email} onChange={onChangeRoot}/>
+              <label htmlFor="email" className="required">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={form.email}
+                onChange={onChangeRoot}
+              />
             </div>
 
             <div className="row">
               <div className="col-lg-6">
                 <div className="single-input-item">
                   <label htmlFor="phoneNumber">Phone</label>
-                  <input type="text" id="phoneNumber"
+                  <input
+                    type="text"
+                    id="phoneNumber"
                     value={form.userDetails.phoneNumber}
-                    onChange={onChangeDetails}/>
+                    onChange={onChangeDetails}
+                  />
                 </div>
               </div>
               <div className="col-lg-6">
                 <div className="single-input-item">
                   <label htmlFor="birthDate">Birth date</label>
-                  <input type="date" id="birthDate"
+                  <input
+                    type="date"
+                    id="birthDate"
                     value={form.userDetails.birthDate}
-                    onChange={onChangeDetails}/>
+                    onChange={onChangeDetails}
+                  />
                 </div>
               </div>
             </div>
 
             <div className="single-input-item">
               <label htmlFor="aboutMe">About me</label>
-              <input type="text" id="aboutMe"
+              <input
+                type="text"
+                id="aboutMe"
                 value={form.userDetails.aboutMe}
-                onChange={onChangeDetails}/>
+                onChange={onChangeDetails}
+              />
             </div>
 
             <div className="row" style={{ alignItems: "center" }}>
-                <div className="col-md-6">
-                  <div className="mb-3">
-                    <label htmlFor="gender" className="form-label">Gender</label>
-                    <select
-                      id="gender"
-                      className="form-select"
-                      value={form.userDetails.gender}
-                      onChange={onChangeDetails}
-                      aria-label="Select gender"
-                    >
-                      <option value="MALE">Male</option>
-                      <option value="FEMALE">Female</option>
-                      <option value="OTHER">Other</option>
-                    </select>
-                  </div>
+              <div className="col-md-6">
+                <div className="mb-3">
+                  <label htmlFor="gender" className="form-label">
+                    Gender
+                  </label>
+                  <select
+                    id="gender"
+                    className="form-select"
+                    value={form.userDetails.gender}
+                    onChange={onChangeDetails}
+                    aria-label="Select gender"
+                  >
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
                 </div>
+              </div>
 
               <div className="col-md-6">
                 <div className="single-input-item">
-
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <button
                       type="button"
@@ -220,18 +280,21 @@ export default function AccountInfo() {
                       title="Nhấp để thay đổi"
                     >
                       {avatarUrl ? (
-                        <img src={avatarUrl} alt="avatar" style={avatarStyles.img} />
+                        <img
+                          src={avatarUrl}
+                          alt="avatar"
+                          style={avatarStyles.img}
+                        />
                       ) : (
                         <div style={avatarStyles.placeholder}>＋</div>
                       )}
                     </button>
                   </div>
                   <label htmlFor="avatar"> </label>
-
-                  Avatar <small style={avatarStyles.hintBelow}>
-                    : Nhấp vào khung để chọn ảnh
+                  Avatar{" "}
+                  <small style={avatarStyles.hintBelow}>
+                    : Click on the frame to select photos
                   </small>
-
                   <input
                     ref={fileInputRef}
                     id="avatar"

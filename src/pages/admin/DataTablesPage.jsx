@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { deleteUserById, getAllUser, updateUser } from "../../api/user";
+import Swal from "sweetalert2";
 
 const DataTablesPage = () => {
   const [users, setUsers] = useState([]);
@@ -21,6 +22,7 @@ const DataTablesPage = () => {
     (async () => {
       try {
         const data = await getAllUser();
+        console.log(data);
         setUsers(data);
       } catch (e) {
         console.log(e);
@@ -105,9 +107,16 @@ const DataTablesPage = () => {
       const updated = await updateUser(payload, file);
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
       setEditing(null);
-      alert("Update successful!");
+
+      Swal.fire({
+        title: "Success!",
+        text: "User information has been updated.",
+        icon: "Success",
+        confirmButtonText: "OK",
+      });
     } catch (err) {
       console.error("Update error:", err);
+      Swal.fire("Eror!", "Update failure.", "error");
     }
   };
 

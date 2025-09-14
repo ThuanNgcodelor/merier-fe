@@ -73,10 +73,10 @@ export default function AdoptionRequestsPage() {
   };
 
 
-  // Chuẩn hoá và parse JSON an toàn
+  
   const parseJson = (val) => {
     if (!val) return null;
-    if (typeof val === "object") return val;       // server đã trả object
+    if (typeof val === "object") return val;       
     if (typeof val === "string") {
       try { return JSON.parse(val); } catch { return null; }
     }
@@ -91,7 +91,6 @@ export default function AdoptionRequestsPage() {
     return fallback;
   };
 
-  // Hiển thị boolean/array/text đẹp hơn
   const pretty = (v) => {
     if (v === undefined || v === null) return "-";
     if (typeof v === "boolean") return v ? "Yes" : "No";
@@ -145,12 +144,6 @@ export default function AdoptionRequestsPage() {
                           onClick={() => updateListingStatus(p.id, "AVAILABLE")}
                         >
                           Available
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-warning me-2"
-                          onClick={() => updateListingStatus(p.id, "PENDING")}
-                        >
-                          Pending
                         </button>
                         <button
                           className="btn btn-sm btn-outline-secondary"
@@ -234,7 +227,6 @@ export default function AdoptionRequestsPage() {
         </div>
       </div>
 
-      {/* Modal xem chi tiết yêu cầu */}
       {viewing && (
         <div
           className="modal fade show"

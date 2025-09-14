@@ -18,6 +18,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import Swal from "sweetalert2";
 
 Chart.register(
   LineController,
@@ -160,7 +161,7 @@ function ChartEditor({ chart, onUpdate }) {
   const save = () => onUpdate(local.id, local);
 
   const seedSampleTS = () => {
-    // Tạo dữ liệu 6 tháng gần nhất, mỗi ngày một giá trị ngẫu nhiên
+    // Generate last 6 months of daily values
     const days = 180;
     const out = [];
     const now = new Date();
@@ -179,7 +180,7 @@ function ChartEditor({ chart, onUpdate }) {
       dateFrom: from,
       dateTo: to,
       period: local.period || "weekly",
-      labels: local.labels, // giữ labels cũ cho fallback
+      labels: local.labels, // keep fallback labels
       data: local.data,
     });
   };
@@ -239,7 +240,7 @@ function ChartEditor({ chart, onUpdate }) {
         </select>
       </div>
 
-      {/* ---- NEW: Time Aggregation Controls ---- */}
+      {/* ---- Time Aggregation Controls ---- */}
       <div className="col-md-3">
         <label className="form-label">Period</label>
         <select
@@ -280,7 +281,7 @@ function ChartEditor({ chart, onUpdate }) {
           Seed sample TS
         </button>
       </div>
-      {/* ---- END NEW ---- */}
+      {/* ---- END ---- */}
 
       <div className="col-md-4">
         <label className="form-label">Color / Palette</label>
@@ -437,27 +438,68 @@ export default function ChartAdminLowCode() {
     dragIdRef.current = null;
   };
 
-  // Export / Import
+  // Export / Import (SweetAlert2)
   const exportJSON = () => {
-    const blob = new Blob([JSON.stringify(charts, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `charts-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const blob = new Blob([JSON.stringify(charts, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `charts-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      Swal.fire({
+        icon: "success",
+        title: "Export successful",
+        text: "Charts exported as JSON file.",
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+        toast: true,
+        position: "top-end",
+      });
+    } catch (e) {
+      Swal.fire({
+        icon: "error",
+        title: "Export failed",
+        text: e.message || "Unable to export charts.",
+      });
+    }
   };
+
   const importJSON = async (file) => {
     if (!file) return;
     const text = await file.text();
     try {
       const next = JSON.parse(text);
-      if (Array.isArray(next)) setCharts(next);
-      else alert("Invalid JSON (expected an array).");
+      if (Array.isArray(next)) {
+        setCharts(next);
+        Swal.fire({
+          icon: "success",
+          title: "Import successful",
+          text: "Charts imported successfully.",
+          showConfirmButton: false,
+          timer: 2000,
+          timerProgressBar: true,
+          toast: true,
+          position: "top-end",
+        });
+      } else {
+        Swal.fire({
+          icon: "warning",
+          title: "Invalid JSON",
+          text: "Expected an array of charts.",
+        });
+      }
     } catch (e) {
-      alert("Unable to parse JSON: " + e.message);
+      Swal.fire({
+        icon: "error",
+        title: "Import failed",
+        text: e.message || "Unable to parse JSON file.",
+      });
     }
   };
 
@@ -569,7 +611,7 @@ function makeChart({
     color,
     legend: true,
     height: type === "doughnut" || type === "pie" ? 300 : 340,
-    // NEW aggregation fields
+    // aggregation fields
     period, // "daily" | "weekly" | "monthly" | "yearly"
     dateFrom: null,
     dateTo: null,
@@ -604,9 +646,9 @@ function hexToRgba(hex, a = 1) {
   const bigint = parseInt(
     h.length === 3
       ? h
-        .split("")
-        .map((c) => c + c)
-        .join("")
+          .split("")
+          .map((c) => c + c)
+          .join("")
       : h,
     16
   );
@@ -773,7 +815,7 @@ function bucketSortKey(key) {
   if (/^\d{4}-\d{2}$/.test(key)) return `${key}-28`;
   if (/^\d{4}-W\d{2}$/.test(key)) {
     const [y, w] = key.split("-W");
-    // approximate sort key as monday of week: year + week
+    // approximate sort key as year + week
     return `${y}-${w}`;
   }
   return key; // daily
@@ -815,9 +857,9 @@ function hexToRgb(hex) {
   const full =
     h.length === 3
       ? h
-        .split("")
-        .map((c) => c + c)
-        .join("")
+          .split("")
+          .map((c) => c + c)
+          .join("")
       : h;
   const bigint = parseInt(full, 16);
   return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };

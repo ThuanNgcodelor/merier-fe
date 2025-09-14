@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {getShelterProfile, getStaff, listMyPets} from "../../api/shelter";
+import {createOrGetShelterProfile, getStaff, listMyPets} from "../../api/shelter";
 
 export default function ShelterPage() {
   const [shelterProfile, setShelterProfile] = useState({});
@@ -9,7 +9,7 @@ export default function ShelterPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const profile = await getShelterProfile();
+        const profile = await createOrGetShelterProfile();
         setShelterProfile(profile || {});
       } catch (e) {
         console.error("Load profile failed:", e);
@@ -23,7 +23,7 @@ export default function ShelterPage() {
         setPets([]);
       }
       try {
-        const st = await getStaff(); // nếu BE chưa có, có thể 404
+        const st = await getStaff(); 
         setStaff(Array.isArray(st) ? st : []);
       } catch (e) {
         console.warn("Load staff failed (optional):", e);

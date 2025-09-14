@@ -15,6 +15,15 @@ export const getAllUser = async () => {
     }
 }
 
+export const getMyAppointments = async () => {
+    try {
+        const response = await api.get("/appointments/my");
+        return response.data;
+    } catch {
+        throw new Error("Can't download appointment schedules");
+    }
+};
+
 export const getOrdersByUser = async () => {
     try {
         const response = await api.get("/order/getOrderByUserId");

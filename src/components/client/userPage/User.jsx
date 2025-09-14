@@ -7,6 +7,7 @@ import AccountInfo from "./AccountInfo.jsx";
 import RoleRequestForm from "./RoleRequestForm.jsx";
 import MyPest from "./MyPest.jsx";
 import OrderList from "./OrderList.jsx";
+import MyAppointments from "./MyAppointments.jsx";
 
 export default function User() {
     const [, setUserInfo] = useState(null);
@@ -98,10 +99,16 @@ export default function User() {
                                                     Orders
                                                 </button>
                                                 <button
+                                                    className={`nav-link${activeTab === "my-appointments" ? " active" : ""}`}
+                                                    onClick={() => handleTabClick("my-appointments")}
+                                                >
+                                                    My Appointments
+                                                </button>
+                                                <button
                                                     className={`nav-link${activeTab === "my-pet" ? " active" : ""}`}
                                                     onClick={() => handleTabClick("my-pet")}
                                                 >
-                                                    My pet
+                                                    My Pet
                                                 </button>
                                                 <button className={`nav-link${activeTab === "address" ? " active" : ""}`} 
                                                     onClick={() => handleTabClick("address")}>
@@ -157,6 +164,10 @@ export default function User() {
                                             {/* Payment Method Tab */}
                                             {activeTab === "my-pet" && (
                                                 <MyPest/>
+                                            )}
+
+                                            {activeTab === "my-appointments" && (
+                                                <MyAppointments/>
                                             )}
 
                                             {/* Address Edit Tab */}

@@ -78,18 +78,7 @@ export default function ProductForm({
                 {errors.name && <div className="text-danger">{errors.name}</div>}
             </div>
 
-            <div className="col-md-6">
-                <label htmlFor="description" className="form-label">Description</label>
-                <textarea
-                    id="description"
-                    className={cls}
-                    name="description"
-                    placeholder="Enter product description"
-                    value={form.description}
-                    onChange={handleChange}
-                    rows="3"
-                />
-            </div>
+       
 
             <div className="col-md-6">
                 <label htmlFor="categoryId" className="form-label">Category</label>

@@ -7,8 +7,9 @@ import React, {
   useState,
 } from "react";
 import { getAllOrders, updateOrderStatus } from "../../api/order";
-import {getAllUser} from "../../api/user.js";
+import { getAllUser } from "../../api/user.js";
 import Modal from "bootstrap/js/dist/modal";
+import Swal from "sweetalert2";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -30,6 +31,15 @@ export default function OrdersPage() {
       });
     }
   }, []);
+
+  // Toast helper
+  const toast = Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 2200,
+    timerProgressBar: true,
+  });
 
   // Utils
   const formatMoney = (n) =>
@@ -55,7 +65,7 @@ export default function OrdersPage() {
     raw: o,
   });
 
-  // Refetch helper (trả về list đã normalize để dùng tiếp)
+  // Refetch helper
   const loadOrders = useCallback(async () => {
     try {
       const usersData = await getAllUser();
@@ -66,10 +76,10 @@ export default function OrdersPage() {
       const list = Array.isArray(data)
         ? data
         : Array.isArray(data?.items)
-          ? data.items
-          : data
-            ? [data]
-            : [];
+        ? data.items
+        : data
+        ? [data]
+        : [];
       const normalized = list.filter(Boolean).map(normalizeOrder);
       setOrders(normalized);
       return normalized;
@@ -98,7 +108,7 @@ export default function OrdersPage() {
     );
   }, [orders, keyword]);
 
-  // Sort: PENDING lên đầu, cùng nhóm mới nhất trước
+  // Sort: PENDING first, then newest
   const visible = useMemo(() => {
     return [...filtered].sort((a, b) => {
       const r = statusRank(a.status) - statusRank(b.status);
@@ -127,20 +137,44 @@ export default function OrdersPage() {
     setActive(null);
   };
   const handleName = (id) => {
-    console.log(users);
     const name = users.find((u) => String(u.id) === String(id))?.username || id;
-    console.log("Name: ", name);
     return name;
   };
 
-  // Approve → update API → cập nhật bảng (không reload)
+  // Approve with SweetAlert2 confirmation + feedback
   const onApprove = async (o) => {
     if (!o) return;
+
+    // Confirm dialog
+    const confirm = await Swal.fire({
+      title: "Approve this order?",
+      html: `<div class="text-start">
+                <div><strong>Order ID:</strong> ${o.id}</div>
+                <div><strong>Customer:</strong> ${handleName(o.customer)}</div>
+                <div><strong>Total:</strong> ${formatMoney(o.total)}</div>
+             </div>`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Approve",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#0d6efd",
+      reverseButtons: true,
+      focusCancel: true,
+    });
+
+    if (!confirm.isConfirmed) return;
+
     try {
       setUpdatingId(o.id);
       const res = await updateOrderStatus(o.id);
 
-      // 1) Optimistic update nếu API trả về order đã cập nhật
+      // Success toast
+      toast.fire({
+        icon: "success",
+        title: "Order approved",
+      });
+
+      // 1) Optimistic update if API returns updated order
       const maybe = res?.id ? res : res?.data?.id ? res.data : null;
       if (maybe) {
         const normalized = normalizeOrder(maybe);
@@ -149,26 +183,29 @@ export default function OrdersPage() {
             String(x.id) === String(normalized.id) ? normalized : x
           )
         );
-        // đồng bộ modal nếu đang mở
+        // sync modal if open
         setActive((prev) =>
           prev && String(prev.id) === String(normalized.id) ? normalized : prev
         );
       } else {
-        // 2) Fallback: refetch danh sách và đồng bộ modal
+        // 2) Fallback: refetch and sync modal
         const fresh = await loadOrders();
         const updated = fresh.find((x) => String(x.id) === String(o.id));
         if (updated) setActive((prev) => (prev ? updated : prev));
       }
     } catch (e) {
-      alert(e?.response?.data?.message || e.message || "Approve failed");
+      Swal.fire({
+        icon: "error",
+        title: "Approve failed",
+        text: e?.response?.data?.message || e.message || "Something went wrong",
+      });
     } finally {
       setUpdatingId(null);
     }
   };
 
   return (
-
-    <div class="col-lg-12 mb-4">
+    <div className="col-lg-12 mb-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h1 className="h3 mb-0">Orders Management</h1>
         <input
@@ -274,7 +311,7 @@ export default function OrdersPage() {
                   <div className="row g-3">
                     <div className="col-md-6">
                       <div className="small text-muted">Customer</div>
-                      <div>{active.customer}</div>
+                      <div>{handleName(active.customer)}</div>
                     </div>
                     <div className="col-md-6">
                       <div className="small text-muted">Status</div>
