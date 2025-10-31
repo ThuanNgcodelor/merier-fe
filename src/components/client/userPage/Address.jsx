@@ -190,7 +190,7 @@ export default function Address() {
                 <div className="row mt-4">
                     <div className="single-input-item">
                         <button
-                            className="check-btn sqr-btn"
+                            className="btn"
                             onClick={() => setShowModal(true)}
                         >
                             <i className="fa fa-plus"></i> Add New Address

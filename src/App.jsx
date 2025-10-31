@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
+import { useEffect } from 'react';
 import HomePage from "./pages/client/HomePage.jsx";
 import AuthPage from "./pages/client/AuthPage.jsx";
 import UserPage from "./pages/client/UserPage.jsx";
@@ -13,31 +14,41 @@ import AdminLayout from "./components/admin/AdminLayout.jsx";
 import ProtectedRoute from "./components/admin/ProtectedRoute.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import DataTablesPage from "./pages/admin/DataTablesPage.jsx";
-import VetPortal from "./pages/vet/VetPortal.jsx";
-import VetDashboard from "./pages/vet/VetDashboard.jsx";
-import VetAppointments from "./pages/vet/VetAppointments.jsx";
-import VetProfile from "./pages/vet/VetProfile.jsx";
 import ChartAdmin from "./pages/admin/ChartAdmin.jsx";
 import OrdersPage from "./pages/admin/OrdersPage.jsx";
 import RolesPage from "./pages/admin/RolesPage.jsx";
-import ShelterPage from "./pages/shelter/ShelterPage.jsx";
-import PetManagementPage from "./pages/shelter/PetManagementPage.jsx";
-import ShelterManagementPage from "./pages/shelter/ShelterManagementPage.jsx";
-import ShelterLayout from "./components/shelter/ShelterLayout.jsx";
-import AdoptionRequestsPage from "./pages/shelter/AdoptionRequestsPage.jsx";
 import CategoriesPage from "./pages/admin/categoeis/CategoriesPage.jsx";
-import VetFinderPage from "./pages/client/VetFinderPage.jsx"
-import NearbyVets from "./pages/client/NearbyVets.jsx";
-import AdoptionListing from "./pages/client/AdoptionListing.jsx";
 import ProductsPage from "./pages/admin/products/ProductsPage.jsx";
 import ContactPage from "./pages/client/ContactPage.jsx";
 import Logout from "./components/admin/Logout.jsx";
 import ProductDetailPage from "./pages/client/ProductDetailPage.jsx";
+import ShopDetailPage from "./pages/client/ShopDetailPage.jsx";
+import ShopOwnerLayout from "./components/shop-owner/ShopOwnerLayout.jsx";
+import ShopOwnerDashboard from "./pages/shop-owner/ShopOwnerDashboard.jsx";
+import AllProductsPage from "./pages/shop-owner/AllProductsPage.jsx";
+import AddProductPage from "./pages/shop-owner/AddProductPage.jsx";
+import AllOrdersPage from "./pages/shop-owner/AllOrdersPage.jsx";
+import BulkShippingPage from "./pages/shop-owner/BulkShippingPage.jsx";
+import AnalyticsPage from "./pages/shop-owner/AnalyticsPage.jsx";
+import SettingsPage from "./pages/shop-owner/SettingsPage.jsx";
+import NotificationPage from "./pages/client/NotificationPage.jsx";
+
+// Component to scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 export default function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<AuthPage />} />
@@ -51,11 +62,9 @@ export default function App() {
           <Route path="/forgot" element={<ForgotPasswordPage />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/vets" element={<VetFinderPage />} />
-          <Route path="/nearby-vets" element={<NearbyVets />} />
-          <Route path="/adoption" element={<AdoptionListing />} />
           <Route path="/contact" element={<ContactPage />} />
-            <Route path="/product/:id" element={<ProductDetailPage />} />
+          <Route path="/product/:id" element={<ProductDetailPage />} />
+          <Route path="/shop/:userId" element={<ShopDetailPage />} />
           {/* Admin routes */}
           <Route
             path="/admin/*"
@@ -73,36 +82,28 @@ export default function App() {
             <Route path="charts" element={<ChartAdmin />} />
             <Route path="products" element={<ProductsPage />} />
             <Route path="logout" element={<Logout />} />
-
           </Route>
-          {/* Vet routes */}
+          {/* Shop Owner routes */}
           <Route
-            path="/vet/*"
+            path="/shop-owner/*"
             element={
-              <ProtectedRoute allowedRoles={["ROLE_VET"]}>
-                <VetPortal />
+              <ProtectedRoute allowedRoles={["ROLE_SHOP_OWNER"]}>
+                <ShopOwnerLayout />
               </ProtectedRoute>
             }
           >
-            <Route index element={<VetDashboard />} />
-            <Route path="appointments" element={<VetAppointments />} />
-            <Route path="profile" element={<VetProfile />} />
-          </Route>
-
-          {/* Shelter routes */}
-          <Route
-            path="/shelter/*"
-            element={
-              <ProtectedRoute allowedRoles={["ROLE_SHELTER"]}>
-                <ShelterLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<ShelterPage />} />
-            <Route path="pets" element={<PetManagementPage />} />
-            <Route path="pet/my" element={<Navigate to="/shelter/pets" replace />} />
-            <Route path="adoption-requests" element={<AdoptionRequestsPage />} />
-            <Route path="manage" element={<ShelterManagementPage />} />
+            <Route index element={<ShopOwnerDashboard />} />
+            <Route path="products" element={<AllProductsPage />} />
+            <Route path="products/add" element={<AddProductPage />} />
+            <Route path="products/edit/:id" element={<AddProductPage />} />
+            <Route path="orders" element={<AllOrdersPage />} />
+            <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
+            <Route path="orders/returns" element={<AllOrdersPage />} />
+            <Route path="orders/shipping-settings" element={<SettingsPage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="notifications" element={<NotificationPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="logout" element={<Logout />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

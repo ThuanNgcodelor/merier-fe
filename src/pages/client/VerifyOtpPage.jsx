@@ -27,8 +27,9 @@ export default function VerifyOtpPage() {
 
     const onValidate = async (code) => {
         try {
-            setErr(""); setMsg("");
             await verifyOtp(email, code);
+            console.log("OTP verified" + code);
+            setErr(""); setMsg("");
             setMsg("OTP verified. Please proceed.");
             navigate("/reset-password", { state: { email } });
         } catch (e) {

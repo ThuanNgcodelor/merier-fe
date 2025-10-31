@@ -5,9 +5,8 @@ import { getUser } from "../../../api/user.js";
 import Address from "./Address.jsx";
 import AccountInfo from "./AccountInfo.jsx";
 import RoleRequestForm from "./RoleRequestForm.jsx";
-import MyPest from "./MyPest.jsx";
 import OrderList from "./OrderList.jsx";
-import MyAppointments from "./MyAppointments.jsx";
+import NotificationPage from "../../../pages/client/NotificationPage.jsx";
 
 export default function User() {
     const [, setUserInfo] = useState(null);
@@ -90,47 +89,48 @@ export default function User() {
                                                     className={`nav-link${activeTab === "dashboard" ? " active" : ""}`}
                                                     onClick={() => handleTabClick("dashboard")}
                                                 >
+                                                    <i className="fas fa-home me-2"></i>
                                                     Dashboard
                                                 </button>
                                                 <button
                                                     className={`nav-link${activeTab === "orders" ? " active" : ""}`}
                                                     onClick={() => handleTabClick("orders")}
                                                 >
+                                                    <i className="fas fa-shopping-bag me-2"></i>
                                                     Orders
                                                 </button>
-                                                <button
-                                                    className={`nav-link${activeTab === "my-appointments" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("my-appointments")}
-                                                >
-                                                    My Appointments
-                                                </button>
-                                                <button
-                                                    className={`nav-link${activeTab === "my-pet" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("my-pet")}
-                                                >
-                                                    My Pet
-                                                </button>
-                                                <button className={`nav-link${activeTab === "address" ? " active" : ""}`} 
+                                                <button className={`nav-link${activeTab === "address" ? " active" : ""}`}
                                                     onClick={() => handleTabClick("address")}>
+                                                    <i className="fas fa-map-marker-alt me-2"></i>
                                                     Address
                                                 </button>
                                                 <button
                                                     className={`nav-link${activeTab === "account-info" ? " active" : ""}`}
                                                     onClick={() => handleTabClick("account-info")}
                                                 >
+                                                    <i className="fas fa-user me-2"></i>
                                                     Account Details
                                                 </button>
                                                 <button
                                                     className={`nav-link${activeTab === "role-request" ? " active" : ""}`}
                                                     onClick={() => handleTabClick("role-request")}
                                                 >
+                                                    <i className="fas fa-user-tie me-2"></i>
                                                     Role Request
+                                                </button>
+                                                <button
+                                                    className={`nav-link${activeTab === "notifications" ? " active" : ""}`}
+                                                    onClick={() => handleTabClick("notifications")}
+                                                >
+                                                    <i className="fas fa-bell me-2"></i>
+                                                    Notifications
                                                 </button>
                                                 
                                                 <button
                                                     className="nav-link"
                                                     onClick={handleLogout}
                                                 >
+                                                    <i className="fas fa-sign-out-alt me-2"></i>
                                                     Logout
                                                 </button>
                                             </div>
@@ -161,15 +161,6 @@ export default function User() {
                                                 <OrderList />
                                             )}
 
-                                            {/* Payment Method Tab */}
-                                            {activeTab === "my-pet" && (
-                                                <MyPest/>
-                                            )}
-
-                                            {activeTab === "my-appointments" && (
-                                                <MyAppointments/>
-                                            )}
-
                                             {/* Address Edit Tab */}
                                             {activeTab === "address" && (
                                                 <Address />
@@ -184,6 +175,13 @@ export default function User() {
                                             {activeTab === "role-request" && (
                                                 <div className="tab-pane fade show active">
                                                     <RoleRequestForm />
+                                                </div>
+                                            )}
+
+                                            {/* Notifications Tab */}
+                                            {activeTab === "notifications" && (
+                                                <div className="tab-pane fade show active">
+                                                    <NotificationPage />
                                                 </div>
                                             )}
                                         </div>

@@ -1,14 +1,14 @@
-// Cart.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
-import imgFallback from "../../../assets/images/shop/6.png";
 import Cookies from "js-cookie";
 import { getCart, getAllAddress } from "../../../api/user.js";
 import { fetchImageById } from "../../../api/image.js";
-import { fetchProductById, removeCartItem } from "../../../api/product.js";
+import { fetchProductById, removeCartItem, updateCartItemQuantity } from "../../../api/product.js";
 import { createOrder } from "../../../api/order.js";
 import Swal from "sweetalert2";
+import { CartItemList } from "./CartItemList";
+import { CheckoutSection } from "./CheckoutSection";
 
 export function Cart() {
   const [cart, setCart] = useState(null);
@@ -31,10 +31,13 @@ export function Cart() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderReceipt, setOrderReceipt] = useState(null);
 
+  const [updatingQuantities, setUpdatingQuantities] = useState(new Set());
+  const debounceTimeouts = useRef({});
+  const lastClickTime = useRef({});
+
   const navigate = useNavigate();
   const token = Cookies.get("accessToken");
 
-  // Toast helper
   const toast = (icon, title) =>
     Swal.fire({
       toast: true,
@@ -46,7 +49,6 @@ export function Cart() {
       timerProgressBar: true,
     });
 
-  // ===== Helpers =====
   const formatCurrency = (n) =>
     new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -75,7 +77,15 @@ export function Cart() {
     }
   };
 
-  // ===== Effects =====
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimeouts.current).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+      lastClickTime.current = {};
+    };
+  }, []);
+
   useEffect(() => {
     if (!token) {
       navigate("/login");
@@ -84,14 +94,15 @@ export function Cart() {
     (async () => {
       try {
         const data = await getCart();
+        console.log("Cart loaded - items:", JSON.stringify(data?.items, null, 2));
         setCart(data);
       } catch {
         setError("Failed to fetch cart data. Please try again later.");
         setCart({ items: [] });
         Swal.fire({
           icon: "error",
-          title: "Load cart failed",
-          text: "Please try again later.",
+          title: "No products yet",
+          text: "Please buy the product.",
         });
       } finally {
         setLoading(false);
@@ -115,7 +126,6 @@ export function Cart() {
     };
   }, [token]);
 
-  // Load product images & names
   useEffect(() => {
     let revoked = false;
     const blobUrls = [];
@@ -177,17 +187,25 @@ export function Cart() {
     };
   }, [cart]);
 
-  // ===== Derived data =====
   const items = cart?.items ?? [];
   const totalItems = items.length;
 
-  const allIds = useMemo(
-    () => items.map((it) => it.productId ?? it.id),
+  const allKeys = useMemo(
+    () => items.map((it) => {
+      const pid = it.productId ?? it.id;
+      const sid = it.sizeId;
+      return `${pid}:${sid || 'no-size'}`;
+    }),
     [items]
   );
 
   const selectedItems = useMemo(
-    () => items.filter((it) => selected.has(it.productId ?? it.id)),
+    () => items.filter((it) => {
+      const pid = it.productId ?? it.id;
+      const sid = it.sizeId;
+      const key = `${pid}:${sid || 'no-size'}`;
+      return selected.has(key);
+    }),
     [items, selected]
   );
 
@@ -205,32 +223,32 @@ export function Cart() {
   }, 0);
 
   const allChecked =
-    allIds.length > 0 && allIds.every((id) => selected.has(id));
+    allKeys.length > 0 && allKeys.every((key) => selected.has(key));
 
-  // ===== UI Handlers =====
-  const toggleOne = (pid, checked) => {
+  const toggleOne = (key, checked) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (checked) next.add(pid);
-      else next.delete(pid);
+      if (checked) next.add(key);
+      else next.delete(key);
       return next;
     });
   };
 
   const toggleAll = (checked) => {
-    if (checked) setSelected(new Set(allIds));
+    if (checked) setSelected(new Set(allKeys));
     else setSelected(new Set());
   };
 
-  const handleRemove = async (pid) => {
+  const handleRemove = async (cartItemId, productId) => {
+    const item = items.find((i) => i.id === cartItemId);
     const name =
-      productNames[pid] ||
-      items.find((i) => (i.productId ?? i.id) === pid)?.productName ||
+      productNames[productId] ||
+      item?.productName ||
       "this item";
 
     const res = await Swal.fire({
       title: "Remove item?",
-      text: `Do you want to remove “${name}” from your cart?`,
+      text: `Do you want to remove "${name}" from your cart?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Remove",
@@ -248,13 +266,20 @@ export function Cart() {
         didOpen: () => Swal.showLoading(),
       });
 
-      const ok = await removeCartItem(pid);
+      const ok = await removeCartItem(cartItemId);
       if (ok) {
         const data = await getCart();
         setCart(data);
         setSelected((prev) => {
           const next = new Set(prev);
-          next.delete(pid);
+          // Remove all keys with this productId
+          const keysToRemove = [];
+          prev.forEach(key => {
+            if (key.startsWith(`${productId}:`)) {
+              keysToRemove.push(key);
+            }
+          });
+          keysToRemove.forEach(key => next.delete(key));
           return next;
         });
         Swal.close();
@@ -277,6 +302,111 @@ export function Cart() {
       });
     }
   };
+
+  const handleQuantityChange = useCallback(async (item, newQuantity) => {
+    const productId = item.productId || item.id;
+    const sizeId = item.sizeId;
+
+    if (newQuantity < 1) {
+      toast("warning", "Quantity must be at least 1");
+      return;
+    }
+
+    // Check stock limit
+    const maxStock = item.stock !== undefined ? item.stock : Infinity;
+    if (newQuantity > maxStock) {
+      toast("warning", `Only ${maxStock} items available in stock`);
+      return;
+    }
+
+    const itemKey = `${productId}:${sizeId || 'no-size'}`;
+
+    const now = Date.now();
+    if (lastClickTime.current[itemKey] && (now - lastClickTime.current[itemKey]) < 100) {
+      return;
+    }
+    lastClickTime.current[itemKey] = now;
+
+    if (debounceTimeouts.current[itemKey]) {
+      clearTimeout(debounceTimeouts.current[itemKey]);
+      setUpdatingQuantities(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
+    }
+
+    setUpdatingQuantities(prev => new Set(prev).add(itemKey));
+
+    setCart(prevCart => {
+      if (!prevCart?.items) return prevCart;
+      
+      return {
+        ...prevCart,
+        items: prevCart.items.map(cartItem => {
+          if ((cartItem.productId || cartItem.id) === productId && cartItem.sizeId === sizeId) {
+            return {
+              ...cartItem,
+              quantity: newQuantity,
+              totalPrice: cartItem.price * newQuantity
+            };
+          }
+          return cartItem;
+        })
+      };
+    });
+
+    debounceTimeouts.current[itemKey] = setTimeout(async () => {
+      try {
+        const requestData = {
+          productId: productId,
+          sizeId: sizeId || undefined,
+          quantity: newQuantity
+        };
+        
+        console.log("Sending request:", requestData);
+        
+        await updateCartItemQuantity(requestData);
+        
+        const data = await getCart();
+        setCart(data);
+        toast("success", "Quantity updated");
+      } catch (error) {
+        console.error("Failed to update quantity:", error);
+        
+        try {
+          const data = await getCart();
+          setCart(data);
+        } catch (refreshError) {
+          console.error("Failed to refresh cart:", refreshError);
+        }
+        
+        let errorMessage = "Failed to update quantity";
+        if (error?.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        } else if (error?.response?.status) {
+          errorMessage = `Server error (${error.response.status})`;
+        }
+        
+        toast("error", errorMessage);
+        Swal.fire({
+          icon: "error",
+          title: "Update failed",
+          text: errorMessage,
+        });
+      } finally {
+        setUpdatingQuantities(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(itemKey);
+          return newSet;
+        });
+
+        delete debounceTimeouts.current[itemKey];
+      }
+    }, 500);
+  }, [cart]);
 
   const handleCheckout = async (e) => {
     e?.preventDefault?.();
@@ -320,10 +450,10 @@ export function Cart() {
       const orderData = {
         selectedItems: selectedItems.map((it) => ({
           productId: it.productId || it.id,
+          sizeId: it.sizeId, 
           quantity: it.quantity,
           unitPrice: it.unitPrice || it.price,
         })),
-        // include address:
         addressId: selectedAddressId,
       };
 
@@ -347,18 +477,65 @@ export function Cart() {
       setCart(data);
       setSelected(new Set());
       toast("success", "Order created");
-    } catch (err) {
-      console.error("Failed to create order:", err);
-      setError("Failed to create order. Please try again.");
-      Swal.close();
-      Swal.fire({
-        icon: "error",
-        title: "Checkout failed",
-        text:
-          err?.response?.data?.message ||
-          "Failed to create order. Please try again.",
-      });
-    } finally {
+      } catch (err) {
+        console.error("Failed to create order:", err);
+        Swal.close();
+        
+        if (err.type === 'INSUFFICIENT_STOCK') {
+          const details = err.details;
+          let stockMessage = err.message;
+          
+          if (details && details.available && details.requested) {
+            stockMessage = `Insufficient stock. Available: ${details.available}, Requested: ${details.requested}`;
+          }
+          
+          await Swal.fire({
+            icon: "warning",
+            title: "Insufficient Stock",
+            html: `
+              <p>${stockMessage}</p>
+              <p class="text-muted">Please reduce quantity or select other products.</p>
+            `,
+            confirmButtonText: "OK",
+            confirmButtonColor: "#ff6b35"
+          });
+        } else if (err.type === 'ADDRESS_NOT_FOUND') {
+          await Swal.fire({
+            icon: "error",
+            title: "Invalid Address",
+            text: "Please select a valid delivery address.",
+            confirmButtonText: "Select Address",
+            confirmButtonColor: "#dc3545"
+          }).then((result) => {
+            if (result.isConfirmed) {
+              setShowAddressModal(true);
+            }
+          });
+        } else if (err.type === 'CART_EMPTY') {
+          await Swal.fire({
+            icon: "info",
+            title: "Empty Cart",
+            text: "Your cart is empty. Please add products before checkout.",
+            confirmButtonText: "Go Shopping",
+            confirmButtonColor: "#007bff"
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/shop");
+            }
+          });
+        } else {
+          await Swal.fire({
+            icon: "error",
+            title: "Checkout Failed",
+            html: `
+              <p>${err.message || 'An error occurred during checkout. Please try again.'}</p>
+              <p class="text-muted">If the problem persists, please contact support.</p>
+            `,
+            confirmButtonText: "Try Again",
+            confirmButtonColor: "#dc3545"
+          });
+        }
+      } finally {
       setOrderLoading(false);
     }
   };
@@ -382,24 +559,13 @@ export function Cart() {
     if (!showAddressModal) setModalSelectedAddressId(null);
   }, [showAddressModal]);
 
-  // ===== Page content without early returns =====
+  const isEmpty = !cart || !Array.isArray(cart.items) || cart.items.length === 0;
+
   const pageContent = (() => {
     if (loading && !showSuccessModal) {
       return (
         <div className="container cart">
           <p>Loading cart...</p>
-        </div>
-      );
-    }
-
-    if (
-      !loading &&
-      (!cart || !Array.isArray(cart.items) || cart.items.length === 0) &&
-      !showSuccessModal
-    ) {
-      return (
-        <div className="container cart">
-          <p>Your cart is empty.</p>
         </div>
       );
     }
@@ -412,7 +578,6 @@ export function Cart() {
       );
     }
 
-    // Normal cart UI
     return (
       <>
         <style>{`
@@ -462,309 +627,72 @@ export function Cart() {
         <section className="cart-page-area section-space">
           <div className="container">
             <div className="row">
-              {/* Cart Table */}
-              <div className="col-lg-12">
-                <div className="cart-table-wrap">
-                  <div className="cart-table">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>
-                            <input
-                              type="checkbox"
-                              aria-label="Select all"
-                              checked={allChecked}
-                              onChange={(e) => toggleAll(e.target.checked)}
-                            />
-                          </th>
-                          <th className="width-thumbnail"></th>
-                          <th className="width-name">Product</th>
-                          <th className="width-price">Price</th>
-                          <th className="width-quantity">Quantity</th>
-                          <th className="width-subtotal">Subtotal</th>
-                          <th className="width-remove"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {items.map((item) => {
-                          const pid = item.productId ?? item.id;
-                          const img = imageUrls[pid] ?? imgFallback;
-                          return (
-                            <tr key={pid}>
-                              <td>
-                                <input
-                                  type="checkbox"
-                                  checked={selected.has(pid)}
-                                  onChange={(e) =>
-                                    toggleOne(pid, e.target.checked)
-                                  }
-                                  aria-label={`Select product ${pid}`}
-                                />
-                              </td>
-                              <td className="product-thumbnail">
-                                <Link to={`/products/${pid}`}>
-                                  <img
-                                    className="w-100"
-                                    src={img || imgFallback}
-                                    alt={
-                                      productNames[pid] ||
-                                      item.productName ||
-                                      "Product"
-                                    }
-                                    width="85"
-                                    height="85"
-                                    onError={(e) =>
-                                      (e.currentTarget.src = imgFallback)
-                                    }
-                                  />
-                                </Link>
-                              </td>
-                              <td className="product-name">
-                                <div className="product-details-quality">
-                                  <div className="pro-qty">
-                                    {productNames[pid] ||
-                                      item.productName ||
-                                      pid}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="product-price">
-                                <span className="amount">
-                                  {formatCurrency(item.unitPrice)}
-                                </span>
-                              </td>
-                              <td className="cart-quality">
-                                <div className="product-details-quality">
-                                  <div className="pro-qty">
-                                    <input
-                                      type="text"
-                                      title="Quantity"
-                                      value={item.quantity}
-                                      readOnly
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="product-total">
-                                <span>{formatCurrency(item.totalPrice)}</span>
-                              </td>
-                              <td className="product-remove">
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemove(pid)}
-                                  aria-label="Remove item"
-                                  className="btn btn-link p-0"
-                                >
-                                  <i className="fa fa-trash-o"></i>
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="cart-shiping-update-wrapper">
-                  <div className="cart-shiping-btn continure-btn">
-                    <Link className="btn btn-link" to="/shop">
-                      <i className="fa fa-angle-left"></i> Back To Shop
+              {isEmpty ? (
+                <div className="col-lg-12 text-center">
+                  <div style={{ 
+                    padding: "40px 20px",
+                    backgroundColor: "#f8f9fa",
+                    borderRadius: "10px",
+                    margin: "0 0 80px 0"
+                  }}>
+                    <i className="fa fa-shopping-cart" style={{ 
+                      fontSize: "80px", 
+                      color: "#dee2e6",
+                      marginBottom: "20px" 
+                    }}></i>
+                    <h4 style={{ color: "#6c757d", marginBottom: "10px" }}>
+                      Your cart is empty.
+                    </h4>
+                    <p style={{ color: "#adb5bd", marginBottom: "30px" }}>
+                      Start shopping to add items to your cart.
+                    </p>
+                    <Link to="/shop" className="btn btn-primary">
+                      <i className="fa fa-shopping-bag me-2"></i>
+                      Continue Shopping
                     </Link>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <CartItemList
+                  items={items}
+                  imageUrls={imageUrls}
+                  productNames={productNames}
+                  selected={selected}
+                  updatingQuantities={updatingQuantities}
+                  onToggle={toggleOne}
+                  onToggleAll={toggleAll}
+                  onRemove={handleRemove}
+                  onQuantityChange={handleQuantityChange}
+                  formatCurrency={formatCurrency}
+                  allChecked={allChecked}
+                  onBackToShop={() => {}}
+                />
+              )}
 
               <div className="col-lg-4" />
             </div>
 
-            <div className="row">
-              {/* Address Selection */}
-              <div className="address-selection col-md-12 col-lg-6 mb-3">
-                <h5>
-                  Delivery Address{" "}
-                  {addressLoading && (
-                    <small className="text-muted">(Loading...)</small>
-                  )}
-                </h5>
-
-                {addressLoading ? (
-                  <div className="selected-address p-3 border rounded bg-light">
-                    <p className="text-muted mb-0">Loading addresses...</p>
-                  </div>
-                ) : addresses.length > 0 ? (
-                  <>
-                    <div className="selected-address p-3 border rounded">
-                      {selectedAddressId ? (
-                        (() => {
-                          const selectedAddr = addresses.find(
-                            (a) => a.id === selectedAddressId
-                          );
-                          return selectedAddr ? (
-                            <div>
-                              <strong>{selectedAddr.recipientName}</strong>
-                              <p className="mb-1">
-                                {selectedAddr.streetAddress}
-                              </p>
-                              <p className="mb-1">{selectedAddr.province}</p>
-                              <p className="mb-0">
-                                Phone: {selectedAddr.recipientPhone}
-                              </p>
-                              {selectedAddr.isDefault && (
-                                <span className="badge bg-primary">
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                          ) : null;
-                        })()
-                      ) : (
-                        <p className="text-muted">No address selected</p>
-                      )}
-                    </div>
-                    <div className="d-flex gap-2 mt-2">
-                      <button
-                        className="btn btn-outline-primary btn-sm"
-                        type="button"
-                        onClick={handleOpenAddressModal}
-                      >
-                        {selectedAddressId
-                          ? "Change Address"
-                          : "Select Address"}
-                      </button>
-                      <button
-                        className="btn btn-outline-secondary btn-sm"
-                        type="button"
-                        onClick={refreshAddresses}
-                        disabled={addressLoading}
-                        title="Refresh addresses"
-                      >
-                        <i
-                          className={`fa fa-refresh ${
-                            addressLoading ? "fa-spin" : ""
-                          }`}
-                        ></i>
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="selected-address p-3 border rounded bg-light">
-                    <p className="text-muted mb-2">
-                      No addresses found. Please add an address to continue.
-                    </p>
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-primary btn-sm"
-                        type="button"
-                        onClick={() => navigate("/information/address")}
-                      >
-                        Add Address
-                      </button>
-                      <button
-                        className="btn btn-outline-secondary btn-sm"
-                        type="button"
-                        onClick={refreshAddresses}
-                        disabled={addressLoading}
-                        title="Refresh addresses"
-                      >
-                        <i
-                          className={`fa fa-refresh ${
-                            addressLoading ? "fa-spin" : ""
-                          }`}
-                        ></i>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Grand Total */}
-              <div className="col-md-12 col-lg-6">
-                <div className="grand-total-wrap mt-10 mt-lg-0">
-                  <div className="grand-total-content">
-                    <table className="table mb-3">
-                      <tbody>
-                        <tr>
-                          <th>Cart Subtotal</th>
-                          <td>
-                            <strong>
-                              {formatCurrency(cart?.totalAmount || 0)}
-                            </strong>
-                          </td>
-                        </tr>
-                        <tr>
-                          <th>Selected Quantity</th>
-                          <td>
-                            <strong>{selectedQuantity}</strong>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-
-                    <div className="shipping-country">
-                      <p>
-                        Selected items:&nbsp;
-                        <strong>{selectedItems.length}</strong>
-                      </p>
-                    </div>
-                    <div className="grand-total">
-                      <h4>
-                        Total <span>{formatCurrency(selectedSubtotal)}</span>
-                      </h4>
-                    </div>
-                  </div>
-
-                  <div className="grand-total-btn d-flex gap-4">
-                    <button
-                      className="btn btn-outline-secondary"
-                      type="button"
-                      onClick={() => toggleAll(true)}
-                      disabled={allChecked}
-                    >
-                      Select all
-                    </button>
-                    <button
-                      className="btn btn-outline-secondary"
-                      type="button"
-                      onClick={() => toggleAll(false)}
-                      disabled={selected.size === 0}
-                    >
-                      Clear selection
-                    </button>
-                  </div>
-
-                  <div className="grand-total-btn">
-                    <button
-                      className="btn btn-link"
-                      type="button"
-                      onClick={handleCheckout}
-                      disabled={orderLoading}
-                      title={
-                        selected.size === 0
-                          ? "Please select at least one item"
-                          : !selectedAddressId
-                          ? "Please select a delivery address"
-                          : ""
-                      }
-                    >
-                      {orderLoading
-                        ? "Creating Order..."
-                        : "Proceed to checkout"}
-                    </button>
-                  </div>
-
-                  {selected.size === 0 && (
-                    <small className="text-muted d-block mt-2">
-                      Selected items will be sent to checkout.
-                    </small>
-                  )}
-                </div>
-              </div>
-            </div>
+            <CheckoutSection
+              cart={cart}
+              addresses={addresses}
+              selectedAddressId={selectedAddressId}
+              addressLoading={addressLoading}
+              selectedItems={selectedItems}
+              selectedQuantity={selectedQuantity}
+              selectedSubtotal={selectedSubtotal}
+              selected={selected}
+              allChecked={allChecked}
+              orderLoading={orderLoading}
+              formatCurrency={formatCurrency}
+              onToggleAll={toggleAll}
+              onOpenAddressModal={handleOpenAddressModal}
+              onRefreshAddresses={refreshAddresses}
+              onCheckout={handleCheckout}
+              navigate={navigate}
+            />
           </div>
         </section>
 
-        {/* Address Modal via Portal to avoid layout glitches */}
         {showAddressModal &&
           ReactDOM.createPortal(
             <div
@@ -901,7 +829,6 @@ export function Cart() {
     <>
       {pageContent}
 
-      {/* Success Modal luôn ở portal để không bị mất khi pageContent đổi */}
       {showSuccessModal &&
         ReactDOM.createPortal(
           <div

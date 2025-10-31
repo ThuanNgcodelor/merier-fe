@@ -89,6 +89,19 @@
     text-decoration: none;
 }
 
+/* Orange button to match Submit Request button */
+.btn-primary {
+    background-color: #FF5A5A;
+    border-color: #FF5A5A;
+    color: #FFFFFF;
+}
+
+.btn-primary:hover {
+    background-color: #1f2226;
+    border-color: #1f2226;
+    color: #FFFFFF;
+}
+
 .btn-outline-primary {
     color: #007bff;
     background-color: transparent;

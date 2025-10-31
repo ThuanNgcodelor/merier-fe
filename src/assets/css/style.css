@@ -1289,9 +1289,10 @@ hr {
 }
 
 .footer-main {
-  background: #F7F8F9;
-  border-radius: 100px 100px 0px 0px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50px 50px 0px 0px;
   padding: 103px 0 60px;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
 }
 @media only screen and (min-width: 992px) and (max-width: 1199px) {
   .footer-main {
@@ -1305,13 +1306,13 @@ hr {
 }
 @media only screen and (max-width: 767px) {
   .footer-main {
-    border-radius: 50px 50px 0px 0px;
+    border-radius: 30px 30px 0px 0px;
     padding: 60px 0 50px;
   }
 }
 @media only screen and (max-width: 575px) {
   .footer-main {
-    border-radius: 30px 30px 0px 0px;
+    border-radius: 20px 20px 0px 0px;
     padding: 60px 0 40px;
   }
 }
@@ -1320,6 +1321,7 @@ hr {
   margin-bottom: 39px;
   padding-bottom: 17px;
   position: relative;
+  color: #FFFFFF;
 }
 @media only screen and (min-width: 768px) and (max-width: 991px) {
   .footer-main .widget-title {
@@ -1333,13 +1335,14 @@ hr {
   }
 }
 .footer-main .widget-title:after {
-  background-color: #E63946;
+  background-color: #FFD700;
   bottom: 0;
   content: "";
-  height: 2px;
+  height: 3px;
   left: 0;
   position: absolute;
   width: 46px;
+  border-radius: 2px;
 }
 @media only screen and (max-width: 767px) {
   .footer-main .widget-title:after {
@@ -1427,6 +1430,7 @@ hr {
   line-height: 28px;
   margin-bottom: 33px;
   max-width: 250px;
+  color: #F0F0F0;
 }
 @media only screen and (min-width: 768px) and (max-width: 991px) {
   .footer-main .desc {
@@ -1471,7 +1475,7 @@ hr {
   }
 }
 .footer-main .widget-nav li a {
-  color: #457B9D;
+  color: #F0F0F0;
   transition: all 0.5s ease 0s;
 }
 @media only screen and (max-width: 767px) {
@@ -1480,15 +1484,16 @@ hr {
   }
 }
 .footer-main .widget-nav li a:hover {
-  color: #FF5A5A;
+  color: #FFD700;
   padding-left: 8px;
 }
 .footer-main .widget-social {
   display: flex;
 }
 .footer-main .widget-social a {
-  color: #457B9D;
+  color: #F0F0F0;
   font-size: 19px;
+  transition: all 0.3s ease;
 }
 .footer-main .widget-social a + a {
   margin-left: 55px;
@@ -1507,11 +1512,13 @@ hr {
   }
 }
 .footer-main .widget-social a:hover {
-  color: #FF5A5A;
+  color: #FFD700;
+  transform: translateY(-3px);
 }
 
 .footer-bottom {
-  background: #F7F8F9;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-bottom-content {
@@ -1528,7 +1535,7 @@ hr {
 }
 .footer-bottom-content p {
   font-size: 14px;
-  color: #1D3557;
+  color: #F0F0F0;
 }
 @media only screen and (max-width: 575px) {
   .footer-bottom-content p {

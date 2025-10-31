@@ -61,10 +61,8 @@ export default function OrderList() {
 
   const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
 
-  // Reset expanded row when page changes (keeps UI tidy)
   useEffect(() => {
     setExpandedOrderId(null);
-    // clamp page if data changes (e.g., fewer orders)
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
@@ -127,7 +125,7 @@ export default function OrderList() {
                         <td>{formatVND(order.totalPrice)}</td>
                         <td>
                           <button
-                            className="btn btn-outline-primary btn-sm" // match RoleRequest "View history" style
+                            className="btn"
                             onClick={() => handleView(order.id)}
                           >
                             {expandedOrderId === order.id ? "Hide" : "View"}
@@ -141,11 +139,14 @@ export default function OrderList() {
                             <div className="p-3" style={{ background: "#fafafa", borderRadius: 8 }}>
                               <h6 className="mb-3">Order Items</h6>
                               <div className="table-responsive">
-                                <table className="table table-sm table-striped mb-0">
+                                <table className="table table-sm mb-0">
                                   <thead>
                                     <tr>
                                       <th style={{ width: 60 }}>#</th>
                                       <th>Product</th>
+                                      <th className="text-center" style={{ width: 100 }}>
+                                        Size
+                                      </th>
                                       <th className="text-center" style={{ width: 100 }}>
                                         Qty
                                       </th>
@@ -161,9 +162,18 @@ export default function OrderList() {
                                   <tbody>
                                     {(order.orderItems || []).map((item, i) => (
                                       <tr key={item.id}>
-                                        <td>{i + 1}</td>
+                                        <td style={{ backgroundColor: "transparent" }}>{i + 1}</td>
                                         <td>
-                                          <span className="text-monospace">{item.productId}</span>
+                                          <div>
+                                            <span className="text-monospace">{item.productName}</span>
+                                          </div>
+                                        </td>
+                                        <td className="text-center">
+                                          {item.sizeName ? (
+                                            <span className="badge badge-secondary">{item.sizeName}</span>
+                                          ) : (
+                                            <span className="text-muted">-</span>
+                                          )}
                                         </td>
                                         <td className="text-center">{item.quantity}</td>
                                         <td className="text-right">{formatVND(item.unitPrice)}</td>
@@ -173,7 +183,7 @@ export default function OrderList() {
                                     ))}
                                     {(!order.orderItems || order.orderItems.length === 0) && (
                                       <tr>
-                                        <td colSpan={6} className="text-center">
+                                        <td colSpan={7} className="text-center">
                                           No items found in this order.
                                         </td>
                                       </tr>
@@ -191,7 +201,6 @@ export default function OrderList() {
               </tbody>
             </table>
 
-            {/* Compact Pagination */}
             <nav aria-label="Order pagination">
               <ul className="pagination pagination-sm justify-content-center">
                 <li className={`page-item ${page === 1 ? "disabled" : ""}`}>

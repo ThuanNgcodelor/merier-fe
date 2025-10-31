@@ -1,15 +1,11 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 import imgFallback from "../../../assets/images/shop/6.png";
 
-import { useCart } from "../../../contexts/CartContext.jsx";
 import {
-  fetchAddToCart,
   fetchProductImageById,
   fetchProducts,
 } from "../../../api/product.js";
-import { getCart } from "../../../api/user.js";
-import WishlistModal from "../../../components/client/WishlistModal.jsx";
 
 const USE_OBJECT_URL = true;
 
@@ -27,25 +23,30 @@ const AllProduct = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageUrls, setImageUrls] = useState({});
-  const { setCart } = useCart();
-
-  // Modal state
-  const [modalInfo, setModalInfo] = useState({
-    isOpen: false,
-    message: "",
-    product: null,
-  });
 
   const createdUrlsRef = useRef([]);
 
-  // Lấy top 6 sản phẩm có stock lớn nhất
   const topSix = useMemo(() => {
     const safe = Array.isArray(products) ? products.slice() : [];
-    return safe
-      .map((p) => ({ ...p, stock: Number(p?.stock) || 0 }))
-      .filter((p) => p.stock > 0) // chỉ lấy sp còn hàng
-      .sort((a, b) => b.stock - a.stock)
-      .slice(0, 6);
+    console.log("🛍️ All products:", safe.length);
+    
+    const withStock = safe.map((p) => {
+      let totalStock = 0;
+      if (p.sizes && Array.isArray(p.sizes)) {
+        totalStock = p.sizes.reduce((sum, size) => {
+          return sum + (Number(size.stock) || 0);
+        }, 0);
+      }
+      console.log(`  - ${p?.name}: total stock = ${totalStock} (sizes: ${p.sizes?.length || 0})`);
+      return { ...p, stock: totalStock };
+    });
+    
+    const inStock = withStock.filter((p) => p.stock > 0);
+    
+    const sorted = inStock.sort((a, b) => b.stock - a.stock);
+    const top = sorted.slice(0, 6);
+    
+    return top;
   }, [products]);
 
   useEffect(() => {
@@ -102,7 +103,6 @@ const AllProduct = () => {
 
       if (!isActive) return;
 
-      // Dọn các URL cũ trước khi set mới
       if (USE_OBJECT_URL && createdUrlsRef.current.length) {
         createdUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
       }
@@ -122,46 +122,36 @@ const AllProduct = () => {
     };
   }, [topSix]);
 
-  const handleAddToCart = async (productId, quantity = 1) => {
-    try {
-      await fetchAddToCart({ productId, quantity });
 
-      const cart = await getCart();
-      setCart(cart);
+  if (loading) {
+    return (
+      <section className="product-area section-space">
+        <div className="container">
+          <div className="section-title text-center">
+            <h2 className="title">Top 6 In-Stock Products</h2>
+            <p>Loading products...</p>
+          </div>
+          <div className="text-center py-5">
+            <i className="fa fa-spinner fa-spin fa-3x" style={{ color: '#6c757d' }}></i>
+            <p className="mt-3">Please wait while we load the products...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-      const p = products.find((x) => x.id === productId);
-
-      setModalInfo({
-        isOpen: true,
-        message: "Product added to cart successfully!",
-        product: p
-          ? {
-              name: p.name,
-              href: p.link || "#",
-              imageSrc: imageUrls[p.id] || imgFallback,
-              imageAlt: p.name,
-            }
-          : null,
-      });
-    } catch (err) {
-      if (err.response?.status === 403) {
-        setModalInfo({
-          isOpen: true,
-          message: "You must login to add product!",
-          product: null,
-        });
-      } else {
-        console.error("Add to cart error:", err);
-        setModalInfo({
-          isOpen: true,
-          message: "Failed to add product to cart.",
-          product: null,
-        });
-      }
-    }
-  };
-
-  if (loading) return <div className="text-center">Loading products...</div>;
+  if (topSix.length === 0 && !loading) {
+    return (
+      <section className="product-area section-space">
+        <div className="container">
+          <div className="section-title text-center">
+            <h2 className="title">Top 6 In-Stock Products</h2>
+            <p>No products available at the moment.</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="product-area section-space">
@@ -175,15 +165,27 @@ const AllProduct = () => {
           {topSix.map((product) => (
             <div className="col-sm-6 col-lg-4 mb-6" key={product.id}>
               <div className="product-item product-item-border">
-                  <Link className="product-thumb" to={`/product/${product.id}`}>
+                  <Link className="product-thumb" to={`/product/${product.id}`} style={{ 
+                    display: 'block',
+                    position: 'relative',
+                    paddingBottom: '100%',
+                    overflow: 'hidden',
+                    backgroundColor: '#f8f9fa'
+                  }}>
                       <img
                           src={imageUrls[product.id] || imgFallback}
                           onError={(e) => {
                               e.currentTarget.src = imgFallback;
                           }}
-                          width="300"
-                          height="286"
                           alt={product.name}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
                       />
                   </Link>
                 {product.status && (
@@ -199,7 +201,7 @@ const AllProduct = () => {
                     <i className="fa fa-expand" />
                   </button>
                   <button type="button" className="product-action-btn">
-                    <i className="fa fa-heart-o" />
+                  <i className="fa fa-shopping-cart" />
                   </button>
                   <button
                     type="button"
@@ -227,27 +229,13 @@ const AllProduct = () => {
                         </span>
                       )}
                   </div>
-                  <button
-                    type="button"
-                    className="info-btn-wishlist"
-                    onClick={() => handleAddToCart(product.id)}
-                    title="Add to Cart"
-                  >
-                    <i className="fa fa-shopping-cart" />
-                  </button>
+                  
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
-
-      <WishlistModal
-        isOpen={modalInfo.isOpen}
-        onClose={() => setModalInfo((s) => ({ ...s, isOpen: false }))}
-        product={modalInfo.product}
-        message={modalInfo.message}
-      />
     </section>
   );
 };

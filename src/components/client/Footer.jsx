@@ -5,66 +5,85 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer style={{ backgroundColor: "#ff4d4f" }} className="text-light pt-5 pb-3 mt-5">
-      <div className="container">
-        <div className="row gy-4">
-          <div className="col-md-4">
-            <h4 className="fw-bold mb-3">🐾 PetCare Platform</h4>
-            <p>
-              A complete ecosystem for pet management: shopping, healthcare, vet
-              appointments, adoption, and shelter management. Bringing
-              convenience and peace of mind for you and your beloved pets.
-            </p>
-          </div>
-
-          <div className="col-md-2">
-            <h5 className="fw-semibold mb-3">Quick Links</h5>
-            <ul className="list-unstyled">
-              <li><Link to="/" className="text-light text-decoration-none">Home</Link></li>
-              <li><Link to="/shop" className="text-light text-decoration-none">Shop</Link></li>
-              <li><Link to="/blog" className="text-light text-decoration-none">Blog</Link></li>
-              <li><Link to="/contact" className="text-light text-decoration-none">Contact</Link></li>
-              <li><Link to="/about-us" className="text-light text-decoration-none">About</Link></li>
-            </ul>
-          </div>
-
-          <div className="col-md-3">
-            <h5 className="fw-semibold mb-3">Services</h5>
-            <ul className="list-unstyled">
-              <li><Link to="/shelter" className="text-light text-decoration-none">Shelter Portal</Link></li>
-              <li><Link to="/vet" className="text-light text-decoration-none">Vet Portal</Link></li>
-              <li><Link to="/adoption" className="text-light text-decoration-none">Adoptions</Link></li>
-              <li><Link to="/orders" className="text-light text-decoration-none">Orders & Checkout</Link></li>
-              <li><Link to="/information" className="text-light text-decoration-none">My Account</Link></li>
-            </ul>
-          </div>
-
-          <div className="col-md-3">
-            <h5 className="fw-semibold mb-3">Contact Us</h5>
-            <p className="mb-1"><i className="fa fa-map-marker-alt me-2"></i>123 Pet Street, Can Tho City, Vietnam</p>
-            <p className="mb-1"><i className="fa fa-envelope me-2"></i>support@petcare.com</p>
-            <p><i className="fa fa-phone me-2"></i>+84 383312321</p>
-
-            <div className="d-flex gap-3 mt-2">
-              <a href="https://facebook.com" target="_blank" rel="noreferrer" className="text-light fs-5"><i className="fab fa-facebook-f"></i></a>
-              <a href="https://twitter.com" target="_blank" rel="noreferrer" className="text-light fs-5"><i className="fab fa-twitter"></i></a>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="text-light fs-5"><i className="fab fa-instagram"></i></a>
-              <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="text-light fs-5"><i className="fab fa-linkedin-in"></i></a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="text-light fs-5"><i className="fab fa-youtube"></i></a>
+    <footer className="footer-area">
+      {/*== Start Footer Main ==*/}
+      <div className="footer-main">
+        <div className="container">
+          <div className="row mb-n6">
+            <div className="col-sm-12 col-md-3 col-lg-3 mb-6">
+              <div className="widget-item">
+                <div className="widget-about">
+                  <Link className="widget-logo" to="/">
+                    <img src="/assets/images/logo.png" alt="Logo" width="153" height="30" />
+                  </Link>
+                  <p className="desc">Merier fashion is simply dummy text of the printing and typesetting industry.</p>
+                </div>
+                <div className="widget-social">
+                  <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer"><i className="fa fa-facebook"></i></a>
+                  <a href="https://www.linkedin.com/" target="_blank" rel="noopener noreferrer"><i className="fa fa-linkedin"></i></a>
+                  <a href="https://www.twitter.com/" target="_blank" rel="noopener noreferrer"><i className="fa fa-twitter"></i></a>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-12 col-md-3 col-lg-2 offset-lg-1 mb-6">
+              <div className="widget-item">
+                <h4 className="widget-title">Ecommerce</h4>
+                <h4 className="widget-title widget-collapsed-title collapsed" data-bs-toggle="collapse" data-bs-target="#widgetTitleId-1">Ecommerce</h4>
+                <div id="widgetTitleId-1" className="collapse widget-collapse-body">
+                  <ul className="widget-nav">
+                    <li><Link to="/shop">Products</Link></li>
+                    <li><Link to="/shop-cart">Your Cart</Link></li>
+                    <li><Link to="/information/orders">Your Order</Link></li>
+                    <li><Link to="/information">Tracking</Link></li>
+                    <li><Link to="/shop-wishlist">Wishlist</Link></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-12 col-md-3 col-lg-2 offset-lg-1 mb-6">
+              <div className="widget-item">
+                <h4 className="widget-title">Support</h4>
+                <h4 className="widget-title widget-collapsed-title collapsed" data-bs-toggle="collapse" data-bs-target="#widgetTitleId-2">Support</h4>
+                <div id="widgetTitleId-2" className="collapse widget-collapse-body">
+                  <ul className="widget-nav">
+                    <li><Link to="/contact">Help</Link></li>
+                    <li><Link to="/contact">Live Chat</Link></li>
+                    <li><Link to="/shop">Product Detail</Link></li>
+                    <li><Link to="/information">Tracking</Link></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div className="col-sm-12 col-md-3 col-lg-2 offset-lg-1 mb-6">
+              <div className="widget-item">
+                <h4 className="widget-title">Products</h4>
+                <h4 className="widget-title widget-collapsed-title collapsed" data-bs-toggle="collapse" data-bs-target="#widgetTitleId-3">Products</h4>
+                <div id="widgetTitleId-3" className="collapse widget-collapse-body">
+                  <ul className="widget-nav">
+                    <li><Link to="/shop">Man</Link></li>
+                    <li><Link to="/shop">Women</Link></li>
+                    <li><Link to="/shop">KID</Link></li>
+                    <li><Link to="/shop">Jackets</Link></li>
+                    <li><Link to="/shop">Others</Link></li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+      {/*== End Footer Main ==*/}
 
-        <hr className="border-light my-4" />
-
-        <div className="text-center">
-          <small>
-            © {year} PetCare Platform. All rights reserved. |{" "}
-            <Link to="/privacy" className="text-decoration-none text-light">Privacy Policy</Link> |{" "}
-            <Link to="/terms" className="text-decoration-none text-light">Terms & Conditions</Link>
-          </small>
+      {/*== Start Footer Bottom ==*/}
+      <div className="footer-bottom">
+        <div className="container pt-0 pb-0">
+          <div className="footer-bottom-content">
+            <Link to="/shop"><img src="/assets/images/shop/payment.png" alt="Image-HasTech" /></Link>
+            <p className="copyright">© {year} Merier. Made with <i className="fa fa-heart"></i> by <a target="_blank" href="https://themeforest.net/user/codecarnival/portfolio" rel="noopener noreferrer">Codecarnival.</a></p>
+          </div>
         </div>
       </div>
+      {/*== End Footer Bottom ==*/}
     </footer>
   );
 }

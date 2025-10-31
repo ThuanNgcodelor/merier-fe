@@ -2,81 +2,52 @@ import { useState, useEffect, useMemo } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
   approveRequest,
-  getUserRequests,
   rejectRequest,
+  getPendingRequests,
 } from "../../api/role_request";
-import {getAllUser} from "../../api/user.js";
 
 // Số dòng mỗi trang
 const pageSize = 8;
 
 // Chuẩn hoá 1 record từ API về format UI
 const normalizeReq = (r) => {
-  const requestedRole =
-    r?.requested_role ?? r?.requestedRole ?? r?.role_request ?? "";
+  const requestedRole = r?.requestedRole ?? "";
   const statusRaw = r?.status ?? null;
 
   return {
-    id:
-      r?.id ??
-      r?._id ??
-      `${r?.user_id ?? r?.userId ?? "unknown"}-${requestedRole}`,
-    name:
-      r?.user?.username ??
-      r?.user?.email ??
-      r?.user_name ??
-      r?.username ??
-      r?.email ??
-      r?.user_id ??
-      r?.userId ??
-      "Unknown",
+    id: r?.id ?? `unknown-${requestedRole}`,
+    userId: r?.userId ?? "",
+    name: r?.username ?? r?.userId ?? "Unknown",
     role_request: String(requestedRole || "").toUpperCase(),
     status: statusRaw
       ? String(statusRaw).charAt(0).toUpperCase() + String(statusRaw).slice(1)
-      : null, // "Pending" nếu null
+      : "Pending",
     reason: r?.reason ?? "",
-    createdAt:
-      r?.creation_timestamp ??
-      r?.creationTimestamp ??
-      r?.created_at ??
-      r?.createdAt ??
-      null,
+    createdAt: r?.creationTimestamp ?? null,
   };
 };
 
 export default function RolesPage() {
   const [roles, setRoles] = useState([]);
-  const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updating, setUpdating] = useState(null); // id đang Accept/Reject
 
-  // Tải dữ liệu động từ API
+  // Hàm load dữ liệu
   const load = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const usersData = await getAllUser();
-      setUsers(usersData);
-      setLoading(true);
-      setError(null);
-
-      // Một số backend trả dạng {content: [], total: ...} hoặc {data: []} hoặc []
-      const res = await getUserRequests();
-      const list =
-        (Array.isArray(res) && res) ||
-        res?.content ||
-        res?.data ||
-        res?.items ||
-        [];
-
-      const normalized = list.map(normalizeReq);
-      setRoles(normalized);
-    } catch (e) {
-      console.error(e);
-      setError(
-        e?.response?.data?.message || e.message || "Load requests failed"
-      );
+      const rolesData = await getPendingRequests();
+      
+      // Normalize role requests
+      const normalizedRoles = rolesData.map(r => normalizeReq(r));
+      setRoles(normalizedRoles);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      setError(err.message || "Không thể tải dữ liệu");
     } finally {
       setLoading(false);
     }
@@ -86,39 +57,34 @@ export default function RolesPage() {
     load();
   }, []);
 
-  // Accept role (TODO: gọi API approve nếu có)
+  // Accept role
   const handleAccept = async (id) => {
+    setUpdating(id);
     try {
-      await approveRequest(id);
-      // await approveRoleRequest(id)  // nếu bạn có API này
-      setRoles((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "Accepted" } : r))
-      );
+      await approveRequest(id, 'Approved by admin');
+      // Refresh data sau khi approve
+      await load();
     } catch (e) {
-      console.error(e);
+      console.error("Error approving request:", e);
+      setError("Không thể approve request");
     } finally {
       setUpdating(null);
     }
   };
-  // Reject role (TODO: gọi API reject nếu có)
+  
+  // Reject role
   const handleReject = async (id) => {
+    setUpdating(id);
     try {
-      await rejectRequest(id);
-      // await rejectUserRequest(id) // nếu bạn có API này
-      setRoles((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: "Rejected" } : r))
-      );
+      await rejectRequest(id, 'Rejected by admin');
+      // Refresh data sau khi reject
+      await load();
     } catch (e) {
-      console.error(e);
+      console.error("Error rejecting request:", e);
+      setError("Không thể reject request");
     } finally {
       setUpdating(null);
     }
-  };
-const handleName = (id) => {
-    console.log(users);
-    const name = users.find((u) => String(u.id) === String(id))?.username || id;
-    console.log("Name: ", name);
-    return name;
   };
   // Lọc theo tìm kiếm
   const filtered = useMemo(() => {
@@ -212,7 +178,7 @@ const handleName = (id) => {
                   current.map((r) => (
                     <tr key={r.id}>
                       <td className="text-start">
-                        <div className="fw-semibold">{handleName(r.name)}</div>
+                        <div className="fw-semibold">{r.name}</div>
                       </td>
                       <td>
                         <span className="badge bg-primary-subtle text-primary border border-primary-subtle">

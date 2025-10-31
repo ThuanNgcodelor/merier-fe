@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import imgFallback from "../../../assets/images/shop/6.png";
-
 import { useCart } from "../../../contexts/CartContext.jsx";
 import {
   fetchAddToCart,
@@ -8,11 +8,9 @@ import {
   fetchProducts,
 } from "../../../api/product.js";
 import { getCart } from "../../../api/user.js";
-import WishlistModal from "../../../components/client/WishlistModal.jsx";
 
 const USE_OBJECT_URL = true;
 
-// If not using object URL, convert arraybuffer -> data URL
 const arrayBufferToDataUrl = (buffer, contentType) => {
   const bytes = new Uint8Array(buffer);
   let binary = "";
@@ -21,23 +19,17 @@ const arrayBufferToDataUrl = (buffer, contentType) => {
   return `data:${contentType || "image/png"};base64,${base64}`;
 };
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 10;
 
 const SearchProduct = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageUrls, setImageUrls] = useState({});
-  const { setCart } = useCart();
 
-  // Modal
-  const [modalInfo, setModalInfo] = useState({
-    isOpen: false,
-    message: "",
-    product: null,
-  });
-
-  // Search & Pagination
-  const [query, setQuery] = useState("");
+  // Search & Pagination - Initialize from URL params
+  const urlQuery = searchParams.get('q') || "";
+  const [query, setQuery] = useState(urlQuery);
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [page, setPage] = useState(1);
 
@@ -47,10 +39,7 @@ const SearchProduct = () => {
   const [onlyDiscounted, setOnlyDiscounted] = useState(false);
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
-  const [sortKey, setSortKey] = useState("relevance"); // relevance | price_asc | price_desc | name_asc | name_desc
-
-  // Show/hide filter panel
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sortKey, setSortKey] = useState("Trending"); // Trending | Featured | Best Selling | Price: low to high | Price: high to low
 
   // Track created object URLs to revoke
   const createdUrlsRef = useRef([]);
@@ -72,6 +61,14 @@ const SearchProduct = () => {
     loadProducts();
   }, []);
 
+  // Sync URL query parameter when component mounts or URL changes
+  useEffect(() => {
+    const urlQuery = searchParams.get('q') || "";
+    if (urlQuery !== query) {
+      setQuery(urlQuery);
+    }
+  }, [searchParams]);
+
   // Debounce search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim()), 300);
@@ -83,28 +80,29 @@ const SearchProduct = () => {
     setPage(1);
   }, [debouncedQuery, category, status, onlyDiscounted, priceMin, priceMax, sortKey]);
 
+  // Calculate min/max price for slider
+  const priceRange = useMemo(() => {
+    const prices = products.map((p) => Number(p.price || 0)).filter(Boolean);
+    return {
+      min: prices.length ? Math.min(...prices) : 0,
+      max: prices.length ? Math.max(...prices) : 1000000,
+    };
+  }, [products]);
+
   // Helpers: get category text from product
   const categoryOf = (p) =>
     p?.category?.name ||
     p?.categoryName ||
     p?.category?.title ||
     p?.category_id ||
-    p?.categoryId ||
-    "Uncategorized";
+    p?.categoryId 
 
-  // Build options from data
-  const categoryOptions = useMemo(() => {
-    const set = new Set();
-    products.forEach((p) => set.add(categoryOf(p)));
-    return ["ALL", ...Array.from(set)];
-  }, [products]);
+  // Helpers: compute total stock from sizes (align with AllProduct.jsx)
+  const totalStockOf = (p) => {
+    if (!p || !Array.isArray(p.sizes)) return 0;
+    return p.sizes.reduce((sum, size) => sum + (Number(size?.stock) || 0), 0);
+  };
 
-  const statusOptions = useMemo(() => {
-    const set = new Set();
-    products.forEach((p) => p?.status && set.add(String(p.status)));
-    const arr = Array.from(set);
-    return ["ALL", ...arr];
-  }, [products]);
 
   // 1) Base filter by search
   const filteredBySearch = useMemo(() => {
@@ -146,17 +144,16 @@ const SearchProduct = () => {
       });
     }
 
+    // Hide products that are completely out of stock (all sizes quantity = 0)
+    arr = arr.filter((p) => totalStockOf(p) > 0);
+
     const sorted = [...arr];
-    if (sortKey === "price_asc") {
+    if (sortKey === "Price: low to high") {
       sorted.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
-    } else if (sortKey === "price_desc") {
+    } else if (sortKey === "Price: high to low") {
       sorted.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-    } else if (sortKey === "name_asc") {
-      sorted.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-    } else if (sortKey === "name_desc") {
-      sorted.sort((a, b) => (b.name || "").localeCompare(a.name || ""));
     }
-    // relevance: keep original order
+    // Trending/Featured/Best Selling: keep original order
 
     return sorted;
   }, [filteredBySearch, category, status, onlyDiscounted, priceMin, priceMax, sortKey]);
@@ -227,44 +224,6 @@ const SearchProduct = () => {
     };
   }, [pageItems]);
 
-  const handleAddToCart = async (productId, quantity = 1) => {
-    try {
-      await fetchAddToCart({ productId, quantity });
-      const cart = await getCart();
-      setCart(cart);
-
-      const p = products.find((x) => x.id === productId);
-
-      setModalInfo({
-        isOpen: true,
-        message: "Product added to cart successfully!",
-        product: p
-          ? {
-              name: p.name,
-              href: p.link || "#",
-              imageSrc: imageUrls[p.id] || imgFallback,
-              imageAlt: p.name,
-            }
-          : null,
-      });
-    } catch (err) {
-      if (err.response?.status === 403) {
-        setModalInfo({
-          isOpen: true,
-          message: "You must log in to add products.",
-          product: null,
-        });
-      } else {
-        console.error("Add to cart error:", err);
-        setModalInfo({
-          isOpen: true,
-          message: "Failed to add product to cart.",
-          product: null,
-        });
-      }
-    }
-  };
-
   const gotoPage = (p) => {
     if (p < 1 || p > totalPages) return;
     setPage(p);
@@ -277,7 +236,7 @@ const SearchProduct = () => {
     setOnlyDiscounted(false);
     setPriceMin("");
     setPriceMax("");
-    setSortKey("relevance");
+    setSortKey("Trending");
   };
 
   // UI helpers for funnel chips
@@ -289,14 +248,8 @@ const SearchProduct = () => {
     if (onlyDiscounted) chips.push({ k: "disc", label: "Discounted", clear: () => setOnlyDiscounted(false) });
     if (priceMin !== "") chips.push({ k: "min", label: `Min: ${priceMin}`, clear: () => setPriceMin("") });
     if (priceMax !== "") chips.push({ k: "max", label: `Max: ${priceMax}`, clear: () => setPriceMax("") });
-    if (sortKey !== "relevance") {
-      const map = {
-        price_asc: "Price ↑",
-        price_desc: "Price ↓",
-        name_asc: "Name A→Z",
-        name_desc: "Name Z→A",
-      };
-      chips.push({ k: "sort", label: `Sort: ${map[sortKey] || sortKey}`, clear: () => setSortKey("relevance") });
+    if (sortKey !== "Trending") {
+      chips.push({ k: "sort", label: `Sort: ${sortKey}`, clear: () => setSortKey("Trending") });
     }
     return chips;
   }, [debouncedQuery, category, status, onlyDiscounted, priceMin, priceMax, sortKey]);
@@ -304,167 +257,60 @@ const SearchProduct = () => {
   if (loading) return <div className="text-center">Loading products...</div>;
 
   return (
+
     <section className="product-area section-space">
       <div className="container">
-        {/* --- Search & result info --- */}
-        <div className="row align-items-center mb-3">
-          <div className="col-12 col-lg-5 mb-2 mb-lg-0">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Search products..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <div className="col-12 col-lg-7 text-lg-end">
-            <span>
-              Showing{" "}
-              <strong>
-                {total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}-{Math.min(currentPage * PAGE_SIZE, total)}
-              </strong>{" "}
-              of <strong>{total}</strong> result(s)
-            </span>
-          </div>
-        </div>
+        <section className="shop-top-bar-area">
+          <div className="container">
+            <div className="shop-top-bar">
+              <select className="select-shoing" value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
+                <option value="Price: low to high">Price: Low to High</option>
+                <option value="Price: high to low">Price: High to Low</option>
+              </select>
 
-        {/* ====== FILTER FUNNEL: summary chips + collapsible form ====== */}
-        <div className="card border-0 shadow-sm mb-3">
-          <div className="card-body">
-            {/* Action row: toggle & clear */}
-            <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <button
-                className="btn btn-primary"
-                type="button"
-                onClick={() => setFiltersOpen((v) => !v)}
-                aria-expanded={filtersOpen}
-                aria-controls="filtersCollapse"
-              >
-                {filtersOpen ? "Hide filters" : "Filters"}
-              </button>
-
-              {activeChips.length > 0 && (
-                <button className="btn btn-outline-secondary" onClick={resetFilters}>
-                  Clear all
-                </button>
-              )}
-
-              {/* Active chips */}
-              <div className="d-flex flex-wrap align-items-center gap-2 ms-auto">
-                {activeChips.length === 0 ? (
-                  <span className="text-muted small">No filters applied</span>
-                ) : (
-                  activeChips.map((c) => (
-                    <span key={c.k} className="badge bg-light text-dark border">
-                      {c.label}{" "}
-                      <button
-                        type="button"
-                        className="btn-close btn-close-white ms-1"
-                        aria-label="Clear"
-                        onClick={c.clear}
-                        style={{ filter: "invert(1)" }}
-                      />
-                    </span>
-                  ))
-                )}
+              <div className="select-on-sale d-flex d-md-none">
+                <h5>On Sale :</h5>
+                <select className="select-on-sale-form" value={onlyDiscounted ? "Yes" : "No"} onChange={(e) => setOnlyDiscounted(e.target.value === "Yes")}>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
               </div>
-            </div>
 
-            {/* Collapsible filter form */}
-            {filtersOpen && (
-              <div id="filtersCollapse">
-                <div className="row gy-2 gx-3">
-                  {/* Category */}
-                  <div className="col-12 col-md-3">
-                    <label className="form-label small mb-1">Category</label>
-                    <select className="form-select" value={category} onChange={(e) => setCategory(e.target.value)}>
-                      {categoryOptions.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Status */}
-                  <div className="col-12 col-md-3">
-                    <label className="form-label small mb-1">Status</label>
-                    <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                      {statusOptions.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Price range */}
-                  <div className="col-6 col-md-2">
-                    <label className="form-label small mb-1">Min Price</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="e.g. 100000"
-                      value={priceMin}
-                      onChange={(e) => setPriceMin(e.target.value)}
-                    />
-                  </div>
-                  <div className="col-6 col-md-2">
-                    <label className="form-label small mb-1">Max Price</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      placeholder="e.g. 500000"
-                      value={priceMax}
-                      onChange={(e) => setPriceMax(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Discounted */}
-                  <div className="col-12 col-md-2 d-flex align-items-end">
-                    <div className="form-check">
-                      <input
-                        id="onlyDiscounted"
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={onlyDiscounted}
-                        onChange={(e) => setOnlyDiscounted(e.target.checked)}
-                      />
-                      <label htmlFor="onlyDiscounted" className="form-check-label">
-                        Only discounted
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Sort */}
-                  <div className="col-12 col-md-3">
-                    <label className="form-label small mb-1">Sort by</label>
-                    <select className="form-select" value={sortKey} onChange={(e) => setSortKey(e.target.value)}>
-                      <option value="relevance">Relevance</option>
-                      <option value="price_asc">Price: Low → High</option>
-                      <option value="price_desc">Price: High → Low</option>
-                      <option value="name_asc">Name: A → Z</option>
-                      <option value="name_desc">Name: Z → A</option>
-                    </select>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="col-12 col-md-3 d-flex align-items-end gap-2">
-                    <button className="btn btn-outline-secondary w-50" onClick={resetFilters}>
-                      Reset
-                    </button>
-                    <button className="btn btn-success w-50" onClick={() => setFiltersOpen(false)}>
-                      Apply
-                    </button>
+              <div className="select-price-range">
+                <h4 className="title">Pricing</h4>
+                <div className="select-price-range-slider">
+                  <input type="range" className="slider-range" 
+                    min={priceRange.min} max={priceRange.max}
+                    value={priceMin || priceRange.min}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                  />
+                  <input type="range" className="slider-range"
+                    min={priceRange.min} max={priceRange.max}
+                    value={priceMax || priceRange.max}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                  />
+                  <div className="slider-labels">
+                    <span id="slider-range-value1">${Number(priceMin || priceRange.min).toLocaleString()}</span>
+                    <span>-</span>
+                    <span id="slider-range-value2">${Number(priceMax || priceRange.max).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
-            )}
+
+              <div className="select-on-sale d-none d-md-flex">
+                <h5>On Sale :</h5>
+                <select className="select-on-sale-form" value={onlyDiscounted ? "Yes" : "No"} onChange={(e) => setOnlyDiscounted(e.target.value === "Yes")}>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+            </div>
           </div>
-        </div>
+          <h6 className="visually-hidden">Shop Top Bar Area</h6>
+        </section>
 
         {/* --- Grid --- */}
-        <div className="row mb-n6">
+        <div className="row mb-n6" style={{ marginTop: '40px' }}>
           {pageItems.length === 0 && (
             <div className="col-12">
               <div className="alert alert-light border text-center">No products found.</div>
@@ -474,17 +320,29 @@ const SearchProduct = () => {
           {pageItems.map((product) => (
             <div className="col-sm-6 col-lg-4 mb-6" key={product.id}>
               <div className="product-item product-item-border">
-                <a className="product-thumb" href={product.link || "#"}>
+                <Link className="product-thumb" to={`/product/${product.id}`} style={{ 
+                  display: 'block',
+                  position: 'relative',
+                  paddingBottom: '100%',
+                  overflow: 'hidden',
+                  backgroundColor: '#f8f9fa'
+                }}>
                   <img
                     src={imageUrls[product.id] || imgFallback}
                     onError={(e) => {
                       e.currentTarget.src = imgFallback;
                     }}
-                    width="300"
-                    height="286"
                     alt={product.name}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }}
                   />
-                </a>
+                </Link>
                 {product.status && <span className="badges">{product.status}</span>}
 
                 <div className="product-action">
@@ -501,7 +359,7 @@ const SearchProduct = () => {
 
                 <div className="product-info">
                   <h4 className="title">
-                    <a href={product.link || "#"}>{product.name}</a>
+                    <Link to={`/product/${product.id}`}>{product.name}</Link>
                   </h4>
                   <div className="price">
                     {"$" + Number(product.price || 0).toLocaleString("en-US")}
@@ -511,17 +369,7 @@ const SearchProduct = () => {
                       </span>
                     )}
                   </div>
-                  <div className="d-flex justify-content-between align-items-center mt-2">
-                    <small className="text-muted">{categoryOf(product)}</small>
-                    <button
-                      type="button"
-                      className="info-btn-wishlist"
-                      onClick={() => handleAddToCart(product.id)}
-                      title="Add to Cart"
-                    >
-                      <i className="fa fa-shopping-cart" />
-                    </button>
-                  </div>
+                  
                 </div>
               </div>
             </div>
@@ -577,12 +425,7 @@ const SearchProduct = () => {
         )}
       </div>
 
-      <WishlistModal
-        isOpen={modalInfo.isOpen}
-        onClose={() => setModalInfo((s) => ({ ...s, isOpen: false }))}
-        product={modalInfo.product}
-        message={modalInfo.message}
-      />
+      
     </section>
   );
 };

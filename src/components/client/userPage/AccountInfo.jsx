@@ -113,7 +113,38 @@ export default function AccountInfo() {
     setLoading(true);
     setMsg("");
     try {
-      await updateUser(form, file);
+      // Chỉ gửi các field có giá trị thực sự
+      const userDetailsToSend = {};
+      
+      if (form.userDetails.firstName && form.userDetails.firstName.trim()) {
+        userDetailsToSend.firstName = form.userDetails.firstName.trim();
+      }
+      if (form.userDetails.lastName && form.userDetails.lastName.trim()) {
+        userDetailsToSend.lastName = form.userDetails.lastName.trim();
+      }
+      if (form.userDetails.phoneNumber && form.userDetails.phoneNumber.trim()) {
+        userDetailsToSend.phoneNumber = form.userDetails.phoneNumber.trim();
+      }
+      if (form.userDetails.gender) {
+        userDetailsToSend.gender = form.userDetails.gender;
+      }
+      if (form.userDetails.aboutMe && form.userDetails.aboutMe.trim()) {
+        userDetailsToSend.aboutMe = form.userDetails.aboutMe.trim();
+      }
+      if (form.userDetails.birthDate && form.userDetails.birthDate.trim()) {
+        userDetailsToSend.birthDate = form.userDetails.birthDate.trim();
+      }
+
+      const formDataToSend = {
+        id: form.id,
+        email: form.email,
+        username: form.username,
+        password: form.password,
+        userDetails: userDetailsToSend
+      };
+
+      console.log("Sending data:", formDataToSend);
+      await updateUser(formDataToSend, file);
       setMsg("Success update!");
     } catch (err) {
       setMsg(err?.message || "Update failure");

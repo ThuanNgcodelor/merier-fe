@@ -43,7 +43,21 @@ export const createOrder = async (orderData) => {
         return response.data;
     } catch (error) {
         console.error("Error creating order:", error);
-        throw new Error("Failed to create order");
+        
+        const errorData = error.response?.data;
+        if (errorData) {
+            throw {
+                type: errorData.error || 'ORDER_FAILED',
+                message: errorData.message || 'Failed to create order',
+                details: errorData.details || null
+            };
+        }
+        
+        throw {
+            type: 'NETWORK_ERROR',
+            message: 'Network error occurred. Please try again.',
+            details: null
+        };
     }
 };
 
@@ -84,3 +98,49 @@ export async function updateOrderStatus(id) {
     const { data } = await api.put(`update-status/${id}?status=PROCESSING`);
     return data;
 }
+
+// Shop Owner Order APIs
+export const getShopOwnerOrders = async (status = null, pageNo = 1, pageSize = 10) => {
+    try {
+        const params = { pageNo, pageSize };
+        if (status) {
+            params.status = status;
+        }
+        const response = await api.get("/shop-owner/orders", { params });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching shop owner orders:", error);
+        throw new Error("Failed to fetch shop owner orders");
+    }
+};
+
+export const getAllShopOwnerOrders = async (status = null) => {
+    try {
+        const params = status ? { status } : {};
+        const response = await api.get("/shop-owner/orders/all", { params });
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching all shop owner orders:", error);
+        throw new Error("Failed to fetch all shop owner orders");
+    }
+};
+
+export const getShopOwnerOrderById = async (orderId) => {
+    try {
+        const response = await api.get(`/shop-owner/orders/${orderId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching shop owner order:", error);
+        throw new Error("Failed to fetch shop owner order");
+    }
+};
+
+export const updateOrderStatusForShopOwner = async (orderId, status) => {
+    try {
+        const response = await api.put(`/shop-owner/orders/${orderId}/status?status=${encodeURIComponent(status)}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error updating order status:", error);
+        throw new Error("Failed to update order status");
+    }
+};

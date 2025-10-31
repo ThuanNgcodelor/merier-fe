@@ -42,6 +42,8 @@ export default function Auth(){
             if (Array.isArray(roles)) {
                 if (roles.includes("ROLE_ADMIN")) {
                     navigate("/admin");
+                } else if (roles.includes("ROLE_SHOP_OWNER")) {
+                    navigate("/shop-owner");
                 } else if (roles.includes("ROLE_USER")) {
                     navigate("/information");
                 }else if ( roles.includes("ROLE_VET")){

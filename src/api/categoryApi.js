@@ -1,13 +1,14 @@
-import api from "./api";
+import createApiInstance from "./createApiInstance.js";
 
-const BASE = "/v1/stock/category";
+const API_URL = "/v1/stock/category";
+const api = createApiInstance(API_URL);
 
 const categoryApi = {
-  getAll: () => api.get(`${BASE}/getAll`).then(r => r.data),
-  getById: (id) => api.get(`${BASE}/getCategoryById/${id}`).then(r => r.data),
-  create: (data) => api.post(`${BASE}/create`, data).then(r => r.data),   
-  update: (data) => api.put(`${BASE}/update`, data).then(r => r.data),   
-  remove: (id) => api.delete(`${BASE}/deleteCategoryById/${id}`),       
+  getAll: () => api.get(`/getAll`).then(r => r.data),
+  getById: (id) => api.get(`/getCategoryById/${id}`).then(r => r.data),
+  create: (data) => api.post(`/create`, data).then(r => r.data),
+  update: (data) => api.put(`/update`, data).then(r => r.data),
+  remove: (id) => api.delete(`/deleteCategoryById/${id}`),
 };
 
 export default categoryApi;

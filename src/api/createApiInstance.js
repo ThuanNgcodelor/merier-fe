@@ -9,14 +9,12 @@ const createApiInstance = (baseURL) => {
         },
     });
 
-    // Interceptor để thêm token vào header
     api.interceptors.request.use(
         (config) => {
             const token = Cookies.get("accessToken");
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
             }
-            // Nếu payload là FormData, để trình duyệt tự set Content-Type với boundary
             if (config.data instanceof FormData) {
                 delete config.headers['Content-Type'];
             }
@@ -30,10 +28,10 @@ const createApiInstance = (baseURL) => {
     const PUBLIC_401_ALLOWLIST = [
         "/user/vets/getAllVet",
         "/user/vets/search",
-        "/user/location/nearby/vets/coordinates",
-        "/user/location/nearby/shelters/coordinates",
-        "/user/location/geocode",
-        "/user/location/debug/vets-with-location",
+        "/stock/product/list",
+        "/stock/product/getProductById",
+        "/stock/category/getAll",
+        "/file-storage/get",
     ];
 
     api.interceptors.response.use(
@@ -45,16 +43,14 @@ const createApiInstance = (baseURL) => {
                 const isPublicEndpoint = PUBLIC_401_ALLOWLIST.some((p) => reqUrl.includes(p));
                 const onAuthPage = ["/login", "/register", "/auth"].some((p) => window.location.pathname.startsWith(p));
 
-                // Nếu là endpoint công khai (ví dụ: danh sách bác sĩ thú y) thì không auto-redirect
                 if (isPublicEndpoint || onAuthPage) {
                     return Promise.reject(error);
                 }
 
-                // Với các endpoint yêu cầu đăng nhập thì mới chuyển hướng
                 Cookies.remove("accessToken");
                 const current = window.location.pathname + window.location.search;
                 window.location.href = `/login?from=${encodeURIComponent(current)}`;
-                return; // stop further promise chain (navigation happens)
+                return;
             }
             return Promise.reject(error);
         }

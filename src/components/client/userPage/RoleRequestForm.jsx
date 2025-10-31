@@ -47,7 +47,9 @@ export default function RoleRequestForm() {
             
         } catch (error) {
             console.error('Error creating role request:', error);
-            setMessage('An error occurred while submitting your request. Please try again later.');
+            console.error('Error response:', error.response?.data);
+            const errorMessage = error.response?.data?.error || error.message || 'An error occurred while submitting your request. Please try again later.';
+            setMessage(errorMessage);
             setMessageType('error');
         } finally {
             setIsSubmitting(false);
@@ -90,8 +92,7 @@ export default function RoleRequestForm() {
                             className="form-control"
                         >
                             <option value="">-- Select Role --</option>
-                            <option value="VET">Vet (Veterinarian)</option>
-                            <option value="SHELTER">Shelter (Rescue Shelter)</option>
+                            <option value="SHOP_OWNER">Shop Owner</option>
                         </select>
                     </div>
                     
@@ -129,8 +130,9 @@ export default function RoleRequestForm() {
             <div className="mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h4>Request History</h4>
+                    <div className="single-input-item">
                     <button 
-                        className="btn btn-outline-primary btn-sm"
+                        className="btn"
                         onClick={() => {
                             setShowRequests(!showRequests);
                             if (!showRequests) {
@@ -140,6 +142,7 @@ export default function RoleRequestForm() {
                     >
                         {showRequests ? 'Hide' : 'View'} history
                     </button>
+                    </div>
                 </div>
                 
                 {showRequests && (
@@ -164,14 +167,12 @@ export default function RoleRequestForm() {
                                         <tr key={request.id}>
                                             <td>
                                                 <strong>
-                                                    {request.requestedRole === 'VET' ? 'Vet (Veterinarian)' : 
-                                                     request.requestedRole === 'SHELTER' ? 'Shelter (Rescue Shelter)' : 
-                                                     request.requestedRole}
+                                                    {request.requestedRole === 'SHOP_OWNER' ? 'Shop Owner' : request.requestedRole}
                                                 </strong>
                                             </td>
                                             <td>{request.reason}</td>
                                             <td>{getStatusBadge(request.status)}</td>
-                                            <td>{new Date(request.creationTimestamp).toLocaleDateString('en-US')}</td>
+                                            <td>{request.creationTimestamp ? new Date(request.creationTimestamp).toLocaleDateString('en-US') : '-'}</td>
                                             <td>{request.adminNote || '-'}</td>
                                         </tr>
                                     ))

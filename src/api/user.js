@@ -53,7 +53,6 @@ export const getCart = async () => {
 export const getUser = async () => {
     try {
         const response = await api.get("/information");
-        console.log("User data:", response.data);
         return response.data;
     } catch {
         throw new Error("Failed to fetch user data");
@@ -67,28 +66,31 @@ export const checkEmailExists = async (email) => {
     return res.status === 200;
 };
 
-// Update user information
+export const getUserById = async (userId) => {
+    try {
+        const response = await api.get(`/getUserById/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching user by ID:", error);
+        throw new Error("Failed to fetch user");
+    }
+};
+
 // Update user information
 export const updateUser = async (data, file) => {
-    data = {
+    // Sử dụng trực tiếp data.userDetails đã được xử lý từ component
+    const requestData = {
         "id": data.id,
         "email": data.email,
         "username": data.username,
         "password": data.password,
-        "userDetails": {
-            "firstName": data.firstName,
-            "lastName": data.lastName,
-            "phoneNumber": data.phoneNumber,
-            "gender": data.gender,
-            "aboutMe": data.aboutMe,
-            "birthDate": data.birthDate
-        }
+        "userDetails": data.userDetails || {}
     }
     const fd = new FormData();
-    console.log("kkk: ", data, "file: ", file);
+    console.log("Update: ", requestData, "file: ", file);
     fd.append(
         "request",
-        new Blob([JSON.stringify(data)], { type: "application/json" }),
+        new Blob([JSON.stringify(requestData)], { type: "application/json" }),
         "request.json"
     );
 
@@ -106,6 +108,60 @@ export const updateUser = async (data, file) => {
     return response.data;
 };
 
+
+// Shop Owner APIs
+export const getShopOwnerInfo = async () => {
+    try {
+        const response = await api.get("/shop-owners/info");
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching shop owner info:", error);
+        throw new Error("Failed to fetch shop owner information");
+    }
+};
+
+export const getShopOwnerByUserId = async (userId) => {
+    try {
+        const response = await api.get(`/shop-owners/${userId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching shop owner by userId:", error);
+        throw new Error("Failed to fetch shop owner");
+    }
+};
+
+export const updateShopOwner = async (data, file) => {
+    try {
+        const requestData = {
+            shopName: data.shopName,
+            ownerName: data.ownerName,
+            email: data.email,
+            address: data.address
+        };
+
+        const fd = new FormData();
+        fd.append(
+            "request",
+            new Blob([JSON.stringify(requestData)], { type: "application/json" }),
+            "request.json"
+        );
+
+        if (file) fd.append("file", file);
+
+        const response = await api.put("/shop-owners/update", fd, {
+            transformRequest: [(payload, headers) => {
+                delete headers.common?.["Content-Type"];
+                delete headers.put?.["Content-Type"];
+                delete headers["Content-Type"];
+                return payload;
+            }],
+        });
+        return response.data;
+    } catch (error) {
+        console.error("Error updating shop owner:", error);
+        throw new Error(error.response?.data?.message || "Failed to update shop owner");
+    }
+};
 
 // Address APIs
 

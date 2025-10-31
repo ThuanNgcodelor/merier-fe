@@ -1,20 +1,15 @@
 import Header from "../../components/client/Header.jsx";
 import AllProduct from "../../components/client/product/AllProduct.jsx";
 import Slider from "../../components/client/Slider.jsx";
-import AllVets from "../../components/client/vet/AllVets.jsx";
 import { getMyPets } from "../../api/user.js";
-import { createAppointment } from "../../api/appointments.js";
 import { useState, useEffect } from "react";
 import ChatBotWidget from "../../components/client/ChatBotWidget.jsx";
 import Footer from "../../components/client/Footer.jsx";
-import CarePlanner from "../../components/client/CarePlanner.jsx";
-import FloatingCareLauncher from "../../components/client/FloatingCareLauncher.jsx";
-import LocationServices from "../../components/client/LocationServices.jsx";
 import Swal from "sweetalert2";
 
 export default function HomePage() {
   const [selectedVet, setSelectedVet] = useState(null);
-  const [pets, setPets] = useState([]);
+  const [, setPets] = useState([]);
 
   useEffect(() => {
     if (selectedVet) {
@@ -22,101 +17,20 @@ export default function HomePage() {
         try {
           const data = await getMyPets();
           setPets(Array.isArray(data) ? data : []);
-        } catch (e) {
+        } catch {
           setPets([]);
         }
       })();
     }
   }, [selectedVet]);
 
-  const handleBookSubmit = async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    const petId = form.get("petId");
-    const petName = pets.find((p) => p.id === petId)?.name || "Unknown Pet";
-    const reason = form.get("reason");
-    const date = form.get("date");
-    const time = form.get("time");
-
-    if (!petId || !date || !time) {
-      await Swal.fire({
-        title: "Missing information",
-        text: "Please fill all required fields (Pet, Date, Time).",
-        icon: "warning",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
-    try {
-      const startDateTime = new Date(`${date}T${time}:00`);
-      const endDateTime = new Date(
-        `${date}T${String(parseInt(time.split(":")[0]) + 1).padStart(2, "0")}:${
-          time.split(":")[1]
-        }:00`
-      );
-
-      const bookingData = {
-        petId: petId,
-        vetId: selectedVet.userId,
-        startTime: startDateTime.toISOString(),
-        endTime: endDateTime.toISOString(),
-        reason: reason || "Vet appointment",
-      };
-
-      // Loading popup
-      Swal.fire({
-        title: "Booking appointment...",
-        text: "Please wait a moment",
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        didOpen: () => Swal.showLoading(),
-      });
-
-      await createAppointment(bookingData);
-
-      Swal.close();
-      await Swal.fire({
-        title: "Appointment booked ✅",
-        html: `
-          <div style="text-align:left">
-            <div><b>Veterinarian:</b> ${
-              selectedVet.specialization || "Vet"
-            }</div>
-            <div><b>Pet:</b> ${petName}</div>
-            <div><b>Date & Time:</b> ${date} ${time}</div>
-            <div><b>Reason:</b> ${reason}</div>
-          </div>
-        `,
-        icon: "success",
-        confirmButtonText: "Done",
-      });
-
-      setSelectedVet(null);
-    } catch (error) {
-      console.error("Error creating appointment:", error);
-      const errorMessage =
-        error?.response?.data?.message ||
-        "Failed to book appointment. Please try again.";
-
-      await Swal.fire({
-        title: "Booking failed ❌",
-        text: errorMessage,
-        icon: "error",
-        confirmButtonText: "Try again",
-      });
-    }
-  };
 
   return (
     <div className="wrapper">
       <Header />
       <main className="main-content">
-        <Slider />
-        <LocationServices />
+        {/*<Slider />*/}
         <AllProduct />
-        <AllVets />
-
         {selectedVet && (
           <div className="vf-backdrop">
             <div className="vf-modal p-4 bg-white rounded shadow">
@@ -135,67 +49,12 @@ export default function HomePage() {
                 <br />
                 {selectedVet.clinicAddress}
               </div>
-              <form onSubmit={handleBookSubmit}>
-                <div className="mb-2">
-                  <label className="form-label">Pet</label>
-                  <select name="petId" className="form-control" required>
-                    <option value="">Select your pet</option>
-                    {pets.map((pet) => (
-                      <option key={pet.id} value={pet.id}>
-                        {pet.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="mb-2">
-                  <label className="form-label">Reason</label>
-                  <input
-                    name="reason"
-                    className="form-control"
-                    placeholder="Vaccination"
-                    required
-                  />
-                </div>
-                <div className="mb-2">
-                  <label className="form-label">Date</label>
-                  <input
-                    type="date"
-                    name="date"
-                    className="form-control"
-                    required
-                  />
-                </div>
-                <div className="mb-3">
-                  <label className="form-label">Time</label>
-                  <input
-                    type="time"
-                    name="time"
-                    className="form-control"
-                    required
-                  />
-                </div>
-                <div className="d-flex justify-content-end gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setSelectedVet(null)}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-success">
-                    Confirm
-                  </button>
-                </div>
-              </form>
-            </div>
+                     </div>
           </div>
         )}
-
-        <CarePlanner />
-        <FloatingCareLauncher />
-        <Footer />
-        <ChatBotWidget />
       </main>
+      <Footer />
+      <ChatBotWidget />
     </div>
   );
 }
