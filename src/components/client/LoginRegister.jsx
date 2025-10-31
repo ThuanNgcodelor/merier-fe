@@ -2,6 +2,7 @@ import React, {useEffect, useState} from "react";
 import {Link, useLocation, useNavigate} from "react-router-dom";
 import {getUserRole, isAuthenticated, login, register} from "../../api/auth.js";
 import {checkEmailExists} from "../../api/user.js";
+import { GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI } from "../../config/config.js";
 
 export default function Auth(){
     const [loginData, setLoginData] = useState({
@@ -25,8 +26,8 @@ export default function Auth(){
     const handleGoogleLogin = () => {
         const googleAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
         const params = new URLSearchParams({
-            client_id: "941069814660-or8vut20mcc30h2lp3lgdrfqd48j4qkc.apps.googleusercontent.com",
-            redirect_uri: "http://localhost:5173/oauth2/callback",
+            client_id: GOOGLE_CLIENT_ID,
+            redirect_uri: GOOGLE_REDIRECT_URI,
             response_type: "code",
             scope: "openid email profile",
             access_type: "offline",
