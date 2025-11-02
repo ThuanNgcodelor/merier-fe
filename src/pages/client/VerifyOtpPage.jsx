@@ -27,23 +27,72 @@ export default function VerifyOtpPage() {
 
     const onValidate = async (code) => {
         try {
-            await verifyOtp(email, code);
-            console.log("OTP verified" + code);
             setErr(""); setMsg("");
-            setMsg("OTP verified. Please proceed.");
-            navigate("/reset-password", { state: { email } });
+            // Normalize email và trim OTP để đảm bảo consistency
+            const normalizedEmail = email?.trim().toLowerCase();
+            const trimmedOtp = code?.trim();
+            
+            if (!normalizedEmail || !trimmedOtp) {
+                setErr("Email and OTP are required.");
+                return;
+            }
+            
+            const response = await verifyOtp(normalizedEmail, trimmedOtp);
+            // Nếu thành công, response sẽ có status 200 và data.ok === true
+            if (response?.data?.ok === true || response?.status === 200) {
+                setMsg("OTP verified. Please proceed.");
+                // Lưu email vào sessionStorage để đảm bảo không bị mất khi navigate
+                sessionStorage.setItem("resetPasswordEmail", normalizedEmail);
+                // Đảm bảo email được pass đúng
+                setTimeout(() => {
+                    navigate("/reset-password", { state: { email: normalizedEmail } });
+                }, 500); // Delay nhỏ để user thấy message
+            } else {
+                // Trường hợp response không đúng format (không nên xảy ra)
+                setErr("Invalid response from server. Please try again.");
+            }
         } catch (e) {
-            setErr(e?.response?.data || "Invalid or expired OTP");
+            // Xử lý error response là object hoặc string
+            const errorData = e?.response?.data;
+            let errorMsg = "Invalid or expired OTP";
+            if (errorData) {
+                if (typeof errorData === 'string') {
+                    errorMsg = errorData;
+                } else if (errorData.message) {
+                    errorMsg = errorData.message;
+                } else if (errorData.error) {
+                    errorMsg = errorData.error;
+                }
+            }
+            setErr(errorMsg);
         }
     };
 
     const onResend = async () => {
         try {
             setErr(""); setMsg("");
-            await forgotPassword(email);
+            // Normalize email trước khi gửi
+            const normalizedEmail = email?.trim().toLowerCase();
+            if (!normalizedEmail) {
+                setErr("Email is required.");
+                return;
+            }
+            await forgotPassword(normalizedEmail);
             setMsg("A new code has been sent to your email.");
         } catch (e) {
-            setErr(e?.response?.data || "Please wait before requesting another code.");
+            // Xử lý error response là object hoặc string
+            const errorData = e?.response?.data;
+            let errorMsg = "Please wait before requesting another code.";
+            if (errorData) {
+                if (typeof errorData === 'string') {
+                    errorMsg = errorData;
+                } else if (errorData.message) {
+                    errorMsg = errorData.message;
+                } else if (errorData.error) {
+                    errorMsg = errorData.error;
+                }
+            }
+            setErr(errorMsg);
         }
     };
 

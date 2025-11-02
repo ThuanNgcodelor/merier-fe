@@ -1,132 +1,142 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  getNotificationsByShopId, 
+  markNotificationAsRead, 
+  deleteNotification,
+  deleteAllShopNotifications,
+  markAllShopNotificationsAsRead
+} from '../../api/notification';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
-export default function NotificationPage() {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'order',
-      title: 'Đơn hàng mới',
-      message: 'Bạn có đơn hàng #12345 mới từ khách hàng Nguyễn Văn A',
-      time: '5 phút trước',
-      isRead: false,
-      icon: 'fa-shopping-cart',
-      color: 'primary'
-    },
-    {
-      id: 2,
-      type: 'order',
-      title: 'Đơn hàng đã được thanh toán',
-      message: 'Đơn hàng #12340 đã được thanh toán thành công',
-      time: '15 phút trước',
-      isRead: false,
-      icon: 'fa-check-circle',
-      color: 'success'
-    },
-    {
-      id: 3,
-      type: 'product',
-      title: 'Sản phẩm sắp hết hàng',
-      message: 'Sản phẩm "Áo khoác denim" chỉ còn 5 sản phẩm trong kho',
-      time: '1 giờ trước',
-      isRead: true,
-      icon: 'fa-exclamation-triangle',
-      color: 'warning'
-    },
-    {
-      id: 4,
-      type: 'order',
-      title: 'Đơn hàng đã được vận chuyển',
-      message: 'Đơn hàng #12335 đã được gửi đi bởi đối tác vận chuyển',
-      time: '2 giờ trước',
-      isRead: true,
-      icon: 'fa-truck',
-      color: 'info'
-    },
-    {
-      id: 5,
-      type: 'system',
-      title: 'Cập nhật hệ thống',
-      message: 'Hệ thống đã được cập nhật với các tính năng mới. Vui lòng kiểm tra!',
-      time: '3 giờ trước',
-      isRead: true,
-      icon: 'fa-bell',
-      color: 'secondary'
-    },
-    {
-      id: 6,
-      type: 'product',
-      title: 'Sản phẩm đã được thêm',
-      message: 'Sản phẩm mới "Áo thun cổ tròn" đã được thêm vào cửa hàng',
-      time: '5 giờ trước',
-      isRead: true,
-      icon: 'fa-plus-circle',
-      color: 'success'
-    },
-    {
-      id: 7,
-      type: 'order',
-      title: 'Đơn hàng bị hủy',
-      message: 'Đơn hàng #12320 đã bị hủy bởi khách hàng',
-      time: '1 ngày trước',
-      isRead: true,
-      icon: 'fa-times-circle',
-      color: 'danger'
-    },
-    {
-      id: 8,
-      type: 'order',
-      title: 'Đánh giá mới',
-      message: 'Khách hàng đã để lại đánh giá 5 sao cho đơn hàng #12300',
-      time: '1 ngày trước',
-      isRead: true,
-      icon: 'fa-star',
-      color: 'warning'
-    },
-    {
-      id: 9,
-      type: 'product',
-      title: 'Sản phẩm đã hết hàng',
-      message: 'Sản phẩm "Quần jean slim" đã hết hàng',
-      time: '2 ngày trước',
-      isRead: true,
-      icon: 'fa-box',
-      color: 'danger'
-    },
-    {
-      id: 10,
-      type: 'system',
-      title: 'Thanh toán được xử lý',
-      message: 'Thanh toán tháng này đã được xử lý thành công',
-      time: '3 ngày trước',
-      isRead: true,
-      icon: 'fa-money-bill',
-      color: 'success'
-    },
-    {
-      id: 11,
-      type: 'order',
-      title: 'Đơn hàng hoàn trả',
-      message: 'Đơn hàng #12290 đã được hoàn trả',
-      time: '4 ngày trước',
-      isRead: true,
-      icon: 'fa-undo',
-      color: 'warning'
-    },
-    {
-      id: 12,
-      type: 'system',
-      title: 'Thông báo bảo trì',
-      message: 'Hệ thống sẽ bảo trì vào ngày mai từ 2:00 - 4:00',
-      time: '5 ngày trước',
-      isRead: true,
-      icon: 'fa-tools',
-      color: 'info'
-    }
-  ]);
+// Format notification from API to frontend format
+const formatNotification = (notification) => {
+  const now = new Date();
+  const createdAt = new Date(notification.creationTimestamp);
+  const diffMs = now - createdAt;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
 
+  let timeAgo = '';
+  if (diffMins < 1) {
+    timeAgo = 'Vừa xong';
+  } else if (diffMins < 60) {
+    timeAgo = `${diffMins} phút trước`;
+  } else if (diffHours < 24) {
+    timeAgo = `${diffHours} giờ trước`;
+  } else {
+    timeAgo = `${diffDays} ngày trước`;
+  }
+
+  let type = 'order';
+  let icon = 'fa-shopping-cart';
+  let color = 'primary';
+  let title = 'Đơn hàng mới';
+
+  if (notification.message) {
+    if (notification.message.includes('đơn hàng mới')) {
+      type = 'order';
+      icon = 'fa-shopping-cart';
+      color = 'primary';
+      title = 'Đơn hàng mới';
+    } else if (notification.message.includes('thanh toán')) {
+      type = 'order';
+      icon = 'fa-check-circle';
+      color = 'success';
+      title = 'Đơn hàng đã được thanh toán';
+    } else if (notification.message.includes('vận chuyển')) {
+      type = 'order';
+      icon = 'fa-truck';
+      color = 'info';
+      title = 'Đơn hàng đã được vận chuyển';
+    } else if (notification.message.includes('hủy')) {
+      type = 'order';
+      icon = 'fa-times-circle';
+      color = 'danger';
+      title = 'Đơn hàng bị hủy';
+    } else if (notification.message.includes('đánh giá')) {
+      type = 'order';
+      icon = 'fa-star';
+      color = 'warning';
+      title = 'Đánh giá mới';
+    } else if (notification.message.includes('hết hàng') || notification.message.includes('sắp hết hàng')) {
+      type = 'product';
+      icon = 'fa-exclamation-triangle';
+      color = 'warning';
+      title = notification.message.includes('sắp hết hàng') ? 'Sản phẩm sắp hết hàng' : 'Sản phẩm đã hết hàng';
+    } else if (notification.message.includes('thêm')) {
+      type = 'product';
+      icon = 'fa-plus-circle';
+      color = 'success';
+      title = 'Sản phẩm đã được thêm';
+    } else {
+      type = 'system';
+      icon = 'fa-bell';
+      color = 'secondary';
+      title = 'Thông báo hệ thống';
+    }
+  }
+
+  return {
+    id: notification.id,
+    type,
+    title,
+    message: notification.message,
+    time: timeAgo,
+    isRead: notification.isRead,
+    icon,
+    color,
+    orderId: notification.orderId
+  };
+};
+
+export default function NotificationPage() {
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // all, unread, order, product, system
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Fetch notifications from API
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        // Backend automatically extracts userId from JWT token and queries by shopId
+        // No need to pass shopId as parameter
+        const data = await getNotificationsByShopId();
+        const formattedNotifications = Array.isArray(data) 
+          ? data.map(formatNotification)
+          : [];
+        setNotifications(formattedNotifications);
+      } catch (err) {
+        console.error('Error fetching notifications:', err);
+        setError(err.message || 'Unable to load notifications');
+        setNotifications([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotifications();
+  }, []);
+
+  // Refresh notifications after actions
+  const refreshNotifications = async () => {
+    try {
+      // Backend automatically extracts userId from JWT token and queries by shopId
+      const data = await getNotificationsByShopId();
+      const formattedNotifications = Array.isArray(data) 
+        ? data.map(formatNotification)
+        : [];
+      setNotifications(formattedNotifications);
+    } catch (err) {
+      console.error('Error refreshing notifications:', err);
+    }
+  };
 
   // Filter notifications
   const filteredNotifications = notifications.filter(notification => {
@@ -135,39 +145,104 @@ export default function NotificationPage() {
       : filter === 'unread' 
         ? !notification.isRead 
         : notification.type === filter;
-    
+
     const matchesSearch = notification.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           notification.message.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return matchesFilter && matchesSearch;
   });
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  const handleMarkAsRead = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? {...n, isRead: true} : n));
+  const handleMarkAsRead = async (id, orderId) => {
+    try {
+      await markNotificationAsRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? {...n, isRead: true} : n));
+      
+      // If notification has orderId, navigate to order page
+      if (orderId) {
+        handleViewOrder(orderId);
+      }
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+      alert('Không thể đánh dấu thông báo đã đọc');
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllShopNotificationsAsRead();
+      setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+      alert('Không thể đánh dấu tất cả thông báo đã đọc');
+    }
   };
 
-  const handleDelete = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+  const handleDelete = async (id) => {
+    try {
+      await deleteNotification(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+      alert('Không thể xóa thông báo');
+    }
   };
 
-  const handleDeleteAll = () => {
-    if (window.confirm('Bạn có chắc muốn xóa tất cả thông báo?')) {
+  const handleDeleteAll = async () => {
+    if (!window.confirm('Bạn có chắc muốn xóa tất cả thông báo?')) {
+      return;
+    }
+
+    try {
+      await deleteAllShopNotifications();
       setNotifications([]);
+    } catch (err) {
+      console.error('Error deleting all notifications:', err);
+      alert('Không thể xóa tất cả thông báo');
+    }
+  };
+
+  const handleViewOrder = (orderId) => {
+    if (orderId) {
+      navigate(`/shop-owner/orders/bulk-shipping?orderId=${orderId}`);
     }
   };
 
   const getTimeAgoColor = (time) => {
-    if (time.includes('phút') || time.includes('giờ')) {
+    if (time.includes('phút') || time.includes('giờ') || time === 'Vừa xong') {
       return '#ee4d2d';
     }
     return '#6c757d';
   };
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div style={{textAlign: 'center', padding: '60px 20px'}}>
+          <div className="spinner-border" role="status">
+            <span className="sr-only">Loading...</span>
+          </div>
+          <p style={{marginTop: '16px', color: '#666'}}>Đang tải thông báo...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-container">
+        <div style={{textAlign: 'center', padding: '60px 20px'}}>
+          <i className="fas fa-exclamation-circle" style={{fontSize: '64px', color: '#dc3545', marginBottom: '16px', display: 'block'}}></i>
+          <h5 style={{color: '#dc3545', marginBottom: '8px'}}>Lỗi khi tải thông báo</h5>
+          <p style={{color: '#666'}}>{error}</p>
+          <button className="btn btn-primary-shop" onClick={() => window.location.reload()}>
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
@@ -233,7 +308,7 @@ export default function NotificationPage() {
                   className={`btn ${filter === 'unread' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
                   onClick={() => setFilter('unread')}
                 >
-                  Chưa đọc ({notifications.filter(n => !n.isRead).length})
+                  Chưa đọc ({unreadCount})
                 </button>
                 <button 
                   className={`btn ${filter === 'order' ? 'btn-primary-shop' : 'btn-outline-secondary'}`}
@@ -284,7 +359,7 @@ export default function NotificationPage() {
                     transition: 'all 0.2s',
                     background: notification.isRead ? 'white' : '#f8f9ff'
                   }}
-                  onClick={() => handleMarkAsRead(notification.id)}
+                  onClick={() => handleMarkAsRead(notification.id, notification.orderId)}
                 >
                   <div
                     style={{
@@ -304,7 +379,7 @@ export default function NotificationPage() {
                       style={{color: 'white', fontSize: '20px'}}
                     ></i>
                   </div>
-                  
+
                   <div style={{flex: 1, minWidth: 0}}>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px'}}>
                       <h6 style={{margin: 0, fontWeight: notification.isRead ? 500 : 600, color: notification.isRead ? '#333' : '#000'}}>
@@ -317,15 +392,14 @@ export default function NotificationPage() {
                     <p style={{margin: 0, color: '#666', fontSize: '14px', lineHeight: '1.5'}}>
                       {notification.message}
                     </p>
-                    
-                    {notification.type === 'order' && (
+
+                    {notification.type === 'order' && notification.orderId && (
                       <button 
                         className="btn btn-sm btn-outline-primary mt-2"
                         style={{fontSize: '12px'}}
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Handle view order detail
-                          alert('Xem chi tiết đơn hàng');
+                          handleViewOrder(notification.orderId);
                         }}
                       >
                         <i className="fas fa-eye"></i> Xem đơn hàng
@@ -365,7 +439,7 @@ export default function NotificationPage() {
           .notification-item:hover {
             background: #f5f5f5 !important;
           }
-          
+
           .notification-item.unread {
             border-left: 4px solid #ee4d2d;
           }
@@ -379,4 +453,3 @@ export default function NotificationPage() {
     </div>
   );
 }
-

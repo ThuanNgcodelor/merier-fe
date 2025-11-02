@@ -8,11 +8,32 @@ export default function ResetPassword() {
     const { state } = useLocation();
     const navigate = useNavigate();
 
-    const email = state?.email || "";
+    // Lấy email từ state hoặc sessionStorage (backup)
+    const emailFromState = state?.email || "";
+    const emailFromStorage = sessionStorage.getItem("resetPasswordEmail") || "";
+    const email = emailFromState || emailFromStorage;
 
     useEffect(() => {
-        if (!email) navigate("/forgot");
+        // Nếu không có email, redirect về forgot password
+        if (!email || email.trim() === "") {
+            navigate("/forgot", { replace: true });
+            return;
+        }
+        // Lưu email vào sessionStorage để backup
+        sessionStorage.setItem("resetPasswordEmail", email);
     }, [email, navigate]);
+
+    // Cleanup: xóa email khỏi sessionStorage khi navigate đi khỏi trang này
+    useEffect(() => {
+        return () => {
+            // Xóa email khi component unmount (khi navigate đi)
+            // Note: Điều này sẽ chạy khi navigate sang trang khác
+            const currentPath = window.location.pathname;
+            if (!currentPath.includes("/reset-password")) {
+                sessionStorage.removeItem("resetPasswordEmail");
+            }
+        };
+    }, []);
 
     const [pwd, setPwd] = useState("");
     const [pwd2, setPwd2] = useState("");
@@ -33,10 +54,23 @@ export default function ResetPassword() {
             setLoading(true);
             await updatePassword(email, pwd);
             setMsg("Password updated successfully. Please sign in.");
+            // Xóa email khỏi sessionStorage sau khi reset thành công
+            sessionStorage.removeItem("resetPasswordEmail");
             setTimeout(() => navigate("/login"), 800);
         } catch (e2) {
-            const m = e2?.response?.data || "Verification expired. Please verify again.";
-            setErr(m);
+            // Xử lý error response là object hoặc string
+            const errorData = e2?.response?.data;
+            let errorMsg = "Verification expired. Please verify again.";
+            if (errorData) {
+                if (typeof errorData === 'string') {
+                    errorMsg = errorData;
+                } else if (errorData.message) {
+                    errorMsg = errorData.message;
+                } else if (errorData.error) {
+                    errorMsg = errorData.error;
+                }
+            }
+            setErr(errorMsg);
         } finally {
             setLoading(false);
         }

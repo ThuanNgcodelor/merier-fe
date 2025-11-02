@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getShopOwnerOrders, updateOrderStatusForShopOwner } from '../../api/order';
 import { getUserById } from '../../api/user';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
 export default function BulkShippingPage() {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,6 +22,29 @@ export default function BulkShippingPage() {
   useEffect(() => {
     loadOrders();
   }, [currentPage, statusFilter]);
+
+  // Auto-expand order if orderId is in URL
+  useEffect(() => {
+    const orderIdFromUrl = searchParams.get('orderId');
+    if (orderIdFromUrl && orders.length > 0) {
+      // Check if order exists in current orders list
+      const orderExists = orders.some(order => order.id === orderIdFromUrl);
+      if (orderExists && expandedRow !== orderIdFromUrl) {
+        setExpandedRow(orderIdFromUrl);
+        // Scroll to the order after a short delay to ensure it's rendered
+        setTimeout(() => {
+          const element = document.querySelector(`[data-order-id="${orderIdFromUrl}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.style.backgroundColor = '#fff3cd';
+            setTimeout(() => {
+              element.style.backgroundColor = '';
+            }, 2000);
+          }
+        }, 300);
+      }
+    }
+  }, [searchParams, orders, expandedRow]);
 
   const loadOrders = async () => {
     try {
@@ -326,7 +351,7 @@ export default function BulkShippingPage() {
                   
                 return (
                   <React.Fragment key={order.id}>
-                    <tr>
+                    <tr data-order-id={order.id}>
                       <td>
                           <input 
                             type="checkbox" 

@@ -15,14 +15,7 @@ export const getAllUser = async () => {
     }
 }
 
-export const getMyAppointments = async () => {
-    try {
-        const response = await api.get("/appointments/my");
-        return response.data;
-    } catch {
-        throw new Error("Can't download appointment schedules");
-    }
-};
+
 
 export const getOrdersByUser = async () => {
     try {
@@ -34,8 +27,6 @@ export const getOrdersByUser = async () => {
 };
 
 export async function deleteUserById(id) {
-    // CHỌN 1 trong 2 URL tùy BE:
-    // const { data } = await axios.delete(`/v1/user/${id}`);
     const { data } = await api.delete(`/deleteUserById/${id}`);
     return data;
 }
@@ -71,7 +62,6 @@ export const getUserById = async (userId) => {
         const response = await api.get(`/getUserById/${userId}`);
         return response.data;
     } catch (error) {
-        console.error("Error fetching user by ID:", error);
         throw new Error("Failed to fetch user");
     }
 };

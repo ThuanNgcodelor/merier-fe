@@ -6,7 +6,7 @@ import Address from "./Address.jsx";
 import AccountInfo from "./AccountInfo.jsx";
 import RoleRequestForm from "./RoleRequestForm.jsx";
 import OrderList from "./OrderList.jsx";
-import NotificationPage from "../../../pages/client/NotificationPage.jsx";
+import NotificationPage from "./NotificationPage.jsx";
 
 export default function User() {
     const [, setUserInfo] = useState(null);

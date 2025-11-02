@@ -4,8 +4,9 @@ import NavLink from "./NavLink";
 import Cookies from "js-cookie";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useCart } from "../../contexts/CartContext.jsx";
-import { getCart } from "../../api/user.js";
+import { getCart, getUser } from "../../api/user.js";
 import { getUserRole, isAuthenticated } from "../../api/auth.js";
+import { getNotificationsByUserId, markNotificationAsRead } from "../../api/notification.js";
 
 export default function Header() {
   const navigate = useNavigate();
@@ -59,13 +60,82 @@ export default function Header() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
-  // Dummy notifications data (chỉ giao diện)
+  // Format thời gian từ timestamp
+  const formatTimeAgo = (timestamp) => {
+    if (!timestamp) return 'Không xác định';
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      if (diffMins < 1) return 'Vừa xong';
+      if (diffMins < 60) return `${diffMins} phút trước`;
+      if (diffHours < 24) return `${diffHours} giờ trước`;
+      if (diffDays < 7) return `${diffDays} ngày trước`;
+      return date.toLocaleDateString('vi-VN');
+    } catch (error) {
+      return 'Không xác định';
+    }
+  };
+
+  // Format notification từ backend
+  const formatNotification = (notification) => {
+    let title = 'Thông báo đơn hàng';
+    if (notification.orderId) {
+      title = `Đơn hàng #${notification.orderId.substring(0, 8)}`;
+    }
+    return {
+      id: notification.id,
+      title,
+      message: notification.message || 'Có cập nhật về đơn hàng của bạn',
+      time: formatTimeAgo(notification.creationTimestamp),
+      isRead: notification.isRead || false,
+      orderId: notification.orderId
+    };
+  };
+
+  // Fetch notifications từ API (chỉ lấy 3 đầu tiên)
   useEffect(() => {
-    setNotifications([
-      { id: 1, title: 'Đơn hàng đã được xác nhận', time: '5 phút trước', isRead: false },
-      { id: 2, title: 'Khuyến mãi đặc biệt', time: '1 giờ trước', isRead: false },
-    ]);
-  }, []);
+    if (!isAuthenticated()) {
+      setNotifications([]);
+      return;
+    }
+
+    const fetchNotifications = async () => {
+      try {
+        const user = await getUser();
+        if (!user || !user.id) return;
+        
+        const data = await getNotificationsByUserId(user.id);
+        // Chỉ lấy notifications có orderId và lấy 3 đầu tiên
+        const orderNotifications = Array.isArray(data) 
+          ? data.filter(n => n.orderId).slice(0, 3).map(formatNotification)
+          : [];
+        setNotifications(orderNotifications);
+      } catch (err) {
+        console.error('Error fetching notifications in header:', err);
+        setNotifications([]);
+      }
+    };
+
+    fetchNotifications();
+    
+    // Refresh notifications mỗi 30 giây
+    const interval = setInterval(fetchNotifications, 30000);
+    
+    // Listen to custom event from NotificationPage to refresh immediately
+    const handleNotificationsUpdated = () => {
+      fetchNotifications();
+    };
+    window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
+    };
+  }, [token]);
 
   // Close notifications when clicking outside
   useEffect(() => {
@@ -217,17 +287,38 @@ export default function Header() {
                           {notifications.map(notification => (
                             <div
                               key={notification.id}
-                              onClick={() => {
-                                setNotifications(prev =>
-                                  prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
-                                );
+                              onClick={async () => {
+                                // Mark as read via API
+                                try {
+                                  await markNotificationAsRead(notification.id);
+                                  // Refresh notifications
+                                  const user = await getUser();
+                                  if (user && user.id) {
+                                    const data = await getNotificationsByUserId(user.id);
+                                    const orderNotifications = Array.isArray(data) 
+                                      ? data.filter(n => n.orderId).slice(0, 3).map(formatNotification)
+                                      : [];
+                                    setNotifications(orderNotifications);
+                                  }
+                                } catch (err) {
+                                  console.error('Error marking notification as read in header:', err);
+                                }
+                                // Navigate đến trang orders nếu có orderId
+                                if (notification.orderId) {
+                                  navigate(`/information/orders?orderId=${notification.orderId}`);
+                                  setShowNotifications(false);
+                                } else {
+                                  navigate('/information/notifications');
+                                  setShowNotifications(false);
+                                }
                               }}
                               style={{
                                 padding: '12px 16px',
                                 borderBottom: '1px solid #f0f0f0',
                                 cursor: 'pointer',
                                 background: notification.isRead ? 'white' : '#f8f9ff',
-                                transition: 'background 0.2s'
+                                transition: 'background 0.2s',
+                                borderLeft: notification.isRead ? 'none' : '3px solid #ee4d2d'
                               }}
                               onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
                               onMouseLeave={(e) => e.target.style.background = notification.isRead ? 'white' : '#f8f9ff'}
@@ -235,7 +326,10 @@ export default function Header() {
                               <div style={{ fontWeight: notification.isRead ? 500 : 600, fontSize: '14px', marginBottom: '4px' }}>
                                 {notification.title}
                               </div>
-                              <div style={{ fontSize: '12px', color: '#999' }}>
+                              <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px', lineHeight: '1.4' }}>
+                                {notification.message}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#999' }}>
                                 {notification.time}
                               </div>
                             </div>

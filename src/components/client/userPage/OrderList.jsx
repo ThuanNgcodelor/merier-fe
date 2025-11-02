@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getOrdersByUser } from "../../../api/order.js";
 
 const PAGE_SIZE = 5;
@@ -37,6 +38,7 @@ function getPageNumbers(current, total) {
 }
 
 export default function OrderList() {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [page, setPage] = useState(1);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -61,10 +63,37 @@ export default function OrderList() {
 
   const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
 
+  // Xử lý orderId từ URL params để tự động expand
   useEffect(() => {
-    setExpandedOrderId(null);
+    const orderIdFromUrl = searchParams.get('orderId');
+    if (orderIdFromUrl && orders.length > 0) {
+      // Tìm order trong danh sách
+      const orderIndex = orders.findIndex(o => o.id === orderIdFromUrl);
+      if (orderIndex !== -1) {
+        // Tính page chứa order này
+        const targetPage = Math.floor(orderIndex / PAGE_SIZE) + 1;
+        setPage(targetPage);
+        // Expand order
+        setExpandedOrderId(orderIdFromUrl);
+        // Scroll vào view (sau khi render)
+        setTimeout(() => {
+          const element = document.querySelector(`[data-order-id="${orderIdFromUrl}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 300);
+      }
+    }
+  }, [searchParams, orders]);
+
+  useEffect(() => {
+    // Không reset expandedOrderId nếu có orderId từ URL
+    const orderIdFromUrl = searchParams.get('orderId');
+    if (!orderIdFromUrl) {
+      setExpandedOrderId(null);
+    }
     if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
+  }, [page, totalPages, searchParams]);
 
   const pagedOrders = useMemo(
     () => orders.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
@@ -116,7 +145,7 @@ export default function OrderList() {
 
                   return (
                     <React.Fragment key={order.id}>
-                      <tr>
+                      <tr data-order-id={order.id}>
                         <td>{rowIndex}</td>
                         <td>{fmtDateTime(order.updateTimestamp)}</td>
                         <td>
@@ -134,7 +163,7 @@ export default function OrderList() {
                       </tr>
 
                       {expandedOrderId === order.id && (
-                        <tr>
+                        <tr data-order-detail={order.id}>
                           <td colSpan={5} style={{ textAlign: "left" }}>
                             <div className="p-3" style={{ background: "#fafafa", borderRadius: 8 }}>
                               <h6 className="mb-3">Order Items</h6>

@@ -29,7 +29,7 @@ export default function HomePage() {
     <div className="wrapper">
       <Header />
       <main className="main-content">
-        {/*<Slider />*/}
+        <Slider />
         <AllProduct />
         {selectedVet && (
           <div className="vf-backdrop">

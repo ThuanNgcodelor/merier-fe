@@ -6,8 +6,10 @@ export default function ForgotPasswordPage() {
     const navigate = useNavigate();
 
     const handleSendEmail = async (email) => {
-        await forgotPassword(email);
-        navigate("/verify-otp", { state: { email } });
+        // Normalize email trước khi gửi và lưu state
+        const normalizedEmail = email?.trim().toLowerCase();
+        await forgotPassword(normalizedEmail);
+        navigate("/verify-otp", { state: { email: normalizedEmail } });
     };
 
     return (

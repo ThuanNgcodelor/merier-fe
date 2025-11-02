@@ -16,6 +16,7 @@ export default function Auth(){
         confirmPassword: ''
     });
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({}); // Lưu validation errors theo từng field
     const [,setLoading] = useState(false);
     const [success, setSuccess] = useState("");
     const navigate = useNavigate();
@@ -68,6 +69,13 @@ export default function Auth(){
             ...registerData,
             [e.target.name] : e.target.value,
         });
+        // Clear field error khi user thay đổi input
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors({
+                ...fieldErrors,
+                [e.target.name]: ''
+            });
+        }
     };
 
     const handleForgotPassword = () => {
@@ -77,6 +85,7 @@ export default function Auth(){
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setSuccess('');
         setLoading(true);
         if(loginData.email === '' || loginData.password === ''){
             setError("Please fill in all fields.");
@@ -107,6 +116,7 @@ export default function Auth(){
         e.preventDefault();
         setError("");
         setSuccess("");
+        setFieldErrors({}); // Clear field errors
 
         if (registerData.password !== registerData.confirmPassword) {
             setError("Passwords do not match.");
@@ -128,12 +138,42 @@ export default function Auth(){
             await register(registerData);
             setSuccess("Registration successful! You can now login.");
             setRegisterData({ username: "", email: "", password: "", confirmPassword: "" });
+            setFieldErrors({});
         } catch (err) {
-            const apiMsg =
-            err?.response?.data?.message ||
-            err?.response?.data?.error ||
-            err?.message;
-            setError(apiMsg || "Register error. Please check your registration information.");
+            // Parse validation errors từ response
+            const responseData = err?.response?.data;
+            
+            // Kiểm tra nếu response data là object với keys là field names (username, email, password)
+            if (responseData && typeof responseData === 'object' && 
+                !responseData.message && !responseData.error && 
+                (responseData.username || responseData.email || responseData.password || responseData._general)) {
+                // Đây là validation errors từ backend
+                const newFieldErrors = {
+                    username: responseData.username || '',
+                    email: responseData.email || '',
+                    password: responseData.password || ''
+                };
+                
+                // Handle general error (như từ ProblemDetail)
+                if (responseData._general) {
+                    setError(responseData._general);
+                }
+                
+                setFieldErrors(newFieldErrors);
+                
+                // Hiển thị tổng hợp lỗi nếu có (trừ _general đã được set ở trên)
+                const errorMessages = Object.entries(responseData)
+                    .filter(([key, value]) => key !== '_general' && value)
+                    .map(([key, value]) => value);
+                    
+                if (errorMessages.length > 0 && !responseData._general) {
+                    setError(errorMessages.join('. '));
+                }
+            } else {
+                // Lỗi khác (không phải validation)
+                const apiMsg = responseData?.message || responseData?.error || responseData?.detail || err?.message;
+                setError(apiMsg || "Register error. Please check your registration information.");
+            }
         } finally {
             setLoading(false);
         }
@@ -287,7 +327,17 @@ export default function Auth(){
                                                    value={registerData.username}
                                                    placeholder="Username"
                                                    onChange={handleRegister}
+                                                   style={fieldErrors.username ? { borderColor: '#c62828' } : {}}
                                             />
+                                            {fieldErrors.username && (
+                                                <div style={{ 
+                                                    color: '#c62828', 
+                                                    fontSize: '12px', 
+                                                    marginTop: '5px' 
+                                                }}>
+                                                    {fieldErrors.username}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="login-register-input">
                                             <input type="text"
@@ -296,7 +346,17 @@ export default function Auth(){
                                                    value={registerData.email}
                                                    placeholder="E-mail address"
                                                    onChange={handleRegister}
+                                                   style={fieldErrors.email ? { borderColor: '#c62828' } : {}}
                                             />
+                                            {fieldErrors.email && (
+                                                <div style={{ 
+                                                    color: '#c62828', 
+                                                    fontSize: '12px', 
+                                                    marginTop: '5px' 
+                                                }}>
+                                                    {fieldErrors.email}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="login-register-input">
                                             <input type="password"
@@ -305,7 +365,17 @@ export default function Auth(){
                                                    value={registerData.password}
                                                    placeholder="Password"
                                                    onChange={handleRegister}
+                                                   style={fieldErrors.password ? { borderColor: '#c62828' } : {}}
                                             />
+                                            {fieldErrors.password && (
+                                                <div style={{ 
+                                                    color: '#c62828', 
+                                                    fontSize: '12px', 
+                                                    marginTop: '5px' 
+                                                }}>
+                                                    {fieldErrors.password}
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="login-register-input">

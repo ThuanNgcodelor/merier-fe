@@ -17,6 +17,7 @@ const getGoogleRedirectUri = () => {
 }
 
 export const API_BASE_URL = getApiBaseUrl()
+export const LOCAL_BASE_URL = 'http://localhost:8080'
 export const GOOGLE_REDIRECT_URI = getGoogleRedirectUri()
 export const GOOGLE_CLIENT_ID = '941069814660-or8vut20mcc30h2lp3lgdrfqd48j4qkc.apps.googleusercontent.com'
 

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { getShopOwnerOrders, updateOrderStatusForShopOwner } from '../../api/order';
 import { getUserById } from '../../api/user';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
-export default function AllOrdersPage() {
+export default function ReturnOrderPage() {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,6 +20,34 @@ export default function AllOrdersPage() {
   useEffect(() => {
     loadOrders();
   }, [currentPage, statusFilter]);
+
+  // Auto-expand order if orderId is in URL
+  useEffect(() => {
+    const orderIdFromUrl = searchParams.get('orderId');
+    if (orderIdFromUrl && orders.length > 0) {
+      // Check if order exists in current orders list
+      const orderExists = orders.some(order => order.id === orderIdFromUrl);
+      if (orderExists) {
+        setExpandedRows(prev => {
+          if (!prev.has(orderIdFromUrl)) {
+            return new Set([...prev, orderIdFromUrl]);
+          }
+          return prev;
+        });
+        // Scroll to the order after a short delay to ensure it's rendered
+        setTimeout(() => {
+          const element = document.querySelector(`[data-order-id="${orderIdFromUrl}"]`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.style.backgroundColor = '#fff3cd';
+            setTimeout(() => {
+              element.style.backgroundColor = '';
+            }, 2000);
+          }
+        }, 300);
+      }
+    }
+  }, [searchParams, orders]);
 
   const loadOrders = async () => {
     try {
@@ -164,7 +194,7 @@ export default function AllOrdersPage() {
     return (
       <div className="dashboard-container">
         <div className="dashboard-header">
-          <h1>Order Management - All Orders</h1>
+          <h1>Returns & Refunds</h1>
         </div>
         <div className="text-center py-5">
           <i className="fas fa-spinner fa-spin fa-3x" style={{ color: '#ee4d2d' }}></i>
@@ -177,7 +207,7 @@ export default function AllOrdersPage() {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>Order Management - All Orders</h1>
+        <h1>Returns & Refunds</h1>
       </div>
 
       {error && (
@@ -245,7 +275,7 @@ export default function AllOrdersPage() {
                   
                   return (
                     <React.Fragment key={order.id}>
-                      <tr>
+                      <tr data-order-id={order.id}>
                         <td><strong>{orderNumber}</strong></td>
                         <td>{usernames[order.userId] || order.userId || 'N/A'}</td>
                         <td style={{ maxWidth: '300px' }}>

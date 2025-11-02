@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Cookies from "js-cookie";
 import Swal from "sweetalert2";
-import { API_BASE_URL } from "../../config/config.js";
+import {API_BASE_URL, LOCAL_BASE_URL} from "../../config/config.js";
 
 const GoogleCallback = () => {
   const navigate = useNavigate();
@@ -24,8 +24,10 @@ const GoogleCallback = () => {
     if (code) {
       console.log("Google authorization code received:", code);
         // ${API_BASE_URL}/v1/auth/login/google
+        // http://localhost:8080
+        // API_BASE_URL
       axios
-        .post(`${API_BASE_URL}/v1/auth/login/google`, { code })
+        .post(`${LOCAL_BASE_URL}/v1/auth/login/google`, { code })
         .then((res) => {
           console.log("Google login successful:", res.data);
           Cookies.set("accessToken", res.data.token);

@@ -41,7 +41,8 @@ const createApiInstance = (baseURL) => {
             if (status === 401) {
                 const reqUrl = error?.config?.url || "";
                 const isPublicEndpoint = PUBLIC_401_ALLOWLIST.some((p) => reqUrl.includes(p));
-                const onAuthPage = ["/login", "/register", "/auth"].some((p) => window.location.pathname.startsWith(p));
+                // Thêm các trang auth/forgot password vào danh sách để không redirect
+                const onAuthPage = ["/login", "/register", "/auth", "/forgot", "/verify-otp", "/reset-password"].some((p) => window.location.pathname.startsWith(p));
 
                 if (isPublicEndpoint || onAuthPage) {
                     return Promise.reject(error);

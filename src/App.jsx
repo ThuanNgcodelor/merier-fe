@@ -27,11 +27,11 @@ import ShopOwnerLayout from "./components/shop-owner/ShopOwnerLayout.jsx";
 import ShopOwnerDashboard from "./pages/shop-owner/ShopOwnerDashboard.jsx";
 import AllProductsPage from "./pages/shop-owner/AllProductsPage.jsx";
 import AddProductPage from "./pages/shop-owner/AddProductPage.jsx";
-import AllOrdersPage from "./pages/shop-owner/AllOrdersPage.jsx";
+import ReturnOrderPage from "./pages/shop-owner/ReturnOrderPage.jsx";
 import BulkShippingPage from "./pages/shop-owner/BulkShippingPage.jsx";
 import AnalyticsPage from "./pages/shop-owner/AnalyticsPage.jsx";
 import SettingsPage from "./pages/shop-owner/SettingsPage.jsx";
-import NotificationPage from "./pages/client/NotificationPage.jsx";
+import NotificationPage from "./pages/shop-owner/NotificationPage.jsx";
 
 // Component to scroll to top on route change
 function ScrollToTop() {
@@ -95,9 +95,8 @@ export default function App() {
             <Route path="products" element={<AllProductsPage />} />
             <Route path="products/add" element={<AddProductPage />} />
             <Route path="products/edit/:id" element={<AddProductPage />} />
-            <Route path="orders" element={<AllOrdersPage />} />
+            <Route path="orders/returns" element={<ReturnOrderPage />} />
             <Route path="orders/bulk-shipping" element={<BulkShippingPage />} />
-            <Route path="orders/returns" element={<AllOrdersPage />} />
             <Route path="orders/shipping-settings" element={<SettingsPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="notifications" element={<NotificationPage />} />

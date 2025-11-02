@@ -1,12 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 const ShopOwnerSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const [expandedSections, setExpandedSections] = useState({
-    orders: true,
-    products: true
+    orders: false,
+    products: false
   });
+
+  // Auto-expand section if current route belongs to it (but not the main route)
+  useEffect(() => {
+    const path = location.pathname;
+    
+    // Check if current route is in orders section (only for sub-routes, not main /shop-owner)
+    if (path.startsWith('/shop-owner/orders/')) {
+      setExpandedSections(prev => ({
+        ...prev,
+        orders: true
+      }));
+    }
+    
+    // Check if current route is in products section
+    if (path.startsWith('/shop-owner/products')) {
+      setExpandedSections(prev => ({
+        ...prev,
+        products: true
+      }));
+    }
+  }, [location.pathname]);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -16,7 +37,32 @@ const ShopOwnerSidebar = ({ isOpen, onClose }) => {
   };
 
   const isActive = (path) => {
-    return location.pathname === path || location.pathname.startsWith(path);
+    const currentPath = location.pathname;
+    
+    // Exact match (including trailing slash)
+    if (currentPath === path || currentPath === path + '/') {
+      return true;
+    }
+    
+    // For main dashboard (/shop-owner), only match exact (not sub-routes)
+    if (path === '/shop-owner') {
+      return currentPath === '/shop-owner' || currentPath === '/shop-owner/';
+    }
+    
+    // For /shop-owner/products, only match exact (not sub-routes like /add or /edit/:id)
+    if (path === '/shop-owner/products') {
+      return currentPath === '/shop-owner/products' || currentPath === '/shop-owner/products/';
+    }
+    
+    // For sub-routes (e.g., /shop-owner/orders/bulk-shipping), match exact
+    // This ensures /shop-owner/orders/bulk-shipping doesn't match /shop-owner
+    if (currentPath.startsWith(path)) {
+      const nextChar = currentPath[path.length];
+      // Match if path ends exactly here, or is followed by / or ?
+      return !nextChar || nextChar === '/' || nextChar === '?';
+    }
+    
+    return false;
   };
 
   const handleLinkClick = () => {
