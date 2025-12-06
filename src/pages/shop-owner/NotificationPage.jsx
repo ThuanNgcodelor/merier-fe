@@ -7,6 +7,8 @@ import {
   deleteAllShopNotifications,
   markAllShopNotificationsAsRead
 } from '../../api/notification';
+import useWebSocketNotification from '../../hooks/useWebSocketNotification.js';
+import { getUser } from '../../api/user.js';
 import '../../components/shop-owner/ShopOwnerLayout.css';
 
 // Format notification from API to frontend format
@@ -98,15 +100,25 @@ export default function NotificationPage() {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all'); // all, unread, order, product, system
   const [searchQuery, setSearchQuery] = useState('');
+  const [shopId, setShopId] = useState(null);
 
-  // Fetch notifications from API
+  // WebSocket for real-time notifications (shop owner)
+  const { notifications: wsNotifications, connected: wsConnected } = useWebSocketNotification(shopId, true);
+
+  // Fetch initial notifications from API
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Get user info to get shopId
+        const user = await getUser();
+        if (user && user.id) {
+          setShopId(user.id); // For shop owner, userId is the same as shopId
+        }
+        
         // Backend automatically extracts userId from JWT token and queries by shopId
-        // No need to pass shopId as parameter
         const data = await getNotificationsByShopId();
         const formattedNotifications = Array.isArray(data) 
           ? data.map(formatNotification)
@@ -122,6 +134,75 @@ export default function NotificationPage() {
     };
 
     fetchNotifications();
+  }, []);
+
+  // Merge WebSocket real-time notifications with API notifications
+  useEffect(() => {
+    if (wsNotifications && wsNotifications.length > 0) {
+      // Format WebSocket notifications
+      const formattedWsNotifications = wsNotifications.map(formatNotification);
+      
+      // Merge with existing notifications, avoiding duplicates
+      setNotifications(prev => {
+        const existingIds = new Set(prev.map(n => n.id));
+        const newNotifications = formattedWsNotifications.filter(n => !existingIds.has(n.id));
+        return [...newNotifications, ...prev];
+      });
+      
+      // Dispatch event to notify other components
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+    }
+  }, [wsNotifications]);
+
+  // Handle notification update events from WebSocket (mark as read, delete, etc.)
+  useEffect(() => {
+    const handleNotificationUpdate = (event) => {
+      const updateEvent = event.detail;
+      
+      switch (updateEvent.updateType) {
+        case 'MARKED_AS_READ':
+          // Update notification to read
+          setNotifications(prev => 
+            prev.map(n => 
+              n.id === updateEvent.notificationId 
+                ? { ...n, isRead: true }
+                : n
+            )
+          );
+          break;
+          
+        case 'DELETED':
+          // Remove notification from list
+          setNotifications(prev => 
+            prev.filter(n => n.id !== updateEvent.notificationId)
+          );
+          break;
+          
+        case 'MARKED_ALL_AS_READ':
+          // Mark all as read
+          setNotifications(prev => 
+            prev.map(n => ({ ...n, isRead: true }))
+          );
+          break;
+          
+        case 'DELETED_ALL':
+          // Clear all notifications
+          setNotifications([]);
+          break;
+          
+        default:
+          break;
+      }
+      
+      // Refresh notification count in header
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
+    };
+
+    window.addEventListener('notificationUpdate', handleNotificationUpdate);
+    
+    return () => {
+      window.removeEventListener('notificationUpdate', handleNotificationUpdate);
+    };
   }, []);
 
   // Refresh notifications after actions
@@ -157,7 +238,9 @@ export default function NotificationPage() {
   const handleMarkAsRead = async (id, orderId) => {
     try {
       await markNotificationAsRead(id);
+      // Update will be handled via WebSocket update event, but we can optimistically update
       setNotifications(prev => prev.map(n => n.id === id ? {...n, isRead: true} : n));
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
       
       // If notification has orderId, navigate to order page
       if (orderId) {
@@ -166,26 +249,36 @@ export default function NotificationPage() {
     } catch (err) {
       console.error('Error marking notification as read:', err);
       alert('Không thể đánh dấu thông báo đã đọc');
+      // Refresh on error to sync state
+      await refreshNotifications();
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await markAllShopNotificationsAsRead();
+      // Update will be handled via WebSocket update event, but we can optimistically update
       setNotifications(prev => prev.map(n => ({...n, isRead: true})));
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error marking all notifications as read:', err);
       alert('Không thể đánh dấu tất cả thông báo đã đọc');
+      // Refresh on error to sync state
+      await refreshNotifications();
     }
   };
 
   const handleDelete = async (id) => {
     try {
       await deleteNotification(id);
+      // Update will be handled via WebSocket update event, but we can optimistically update
       setNotifications(prev => prev.filter(n => n.id !== id));
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error deleting notification:', err);
       alert('Không thể xóa thông báo');
+      // Refresh on error to sync state
+      await refreshNotifications();
     }
   };
 
@@ -196,10 +289,14 @@ export default function NotificationPage() {
 
     try {
       await deleteAllShopNotifications();
+      // Update will be handled via WebSocket update event, but we can optimistically update
       setNotifications([]);
+      window.dispatchEvent(new CustomEvent('notificationsUpdated'));
     } catch (err) {
       console.error('Error deleting all notifications:', err);
       alert('Không thể xóa tất cả thông báo');
+      // Refresh on error to sync state
+      await refreshNotifications();
     }
   };
 
@@ -249,16 +346,43 @@ export default function NotificationPage() {
       <div className="dashboard-header">
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
           <div>
-            <h1>Thông Báo</h1>
-            <p className="text-muted">
-              {unreadCount > 0 ? (
-                <span style={{color: '#ee4d2d', fontWeight: '600'}}>
-                  Bạn có {unreadCount} thông báo chưa đọc
-                </span>
-              ) : (
-                'Tất cả thông báo đã được đọc'
-              )}
-            </p>
+            <div>
+              <h1>Thông Báo</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <p className="text-muted" style={{ margin: 0 }}>
+                  {unreadCount > 0 ? (
+                    <span style={{color: '#ee4d2d', fontWeight: '600'}}>
+                      Bạn có {unreadCount} thông báo chưa đọc
+                    </span>
+                  ) : (
+                    'Tất cả thông báo đã được đọc'
+                  )}
+                </p>
+                {wsConnected ? (
+                  <span style={{ 
+                    fontSize: '10px', 
+                    color: '#28a745', 
+                    backgroundColor: '#d4edda', 
+                    padding: '2px 6px', 
+                    borderRadius: '4px',
+                    fontWeight: 500
+                  }}>
+                    ● Real-time
+                  </span>
+                ) : (
+                  <span style={{ 
+                    fontSize: '10px', 
+                    color: '#dc3545', 
+                    backgroundColor: '#f8d7da', 
+                    padding: '2px 6px', 
+                    borderRadius: '4px',
+                    fontWeight: 500
+                  }}>
+                    ● Offline
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
           <div>
             {unreadCount > 0 && (

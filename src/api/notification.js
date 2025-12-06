@@ -93,6 +93,20 @@ export const deleteAllShopNotifications = async () => {
 };
 
 /**
+ * Mark all notifications as read for the current user
+ * @returns {Promise} Response from server
+ */
+export const markAllNotificationsAsRead = async () => {
+    try {
+        const response = await api.put(`/markAllAsReadByUserId`);
+        return response.data;
+    } catch (error) {
+        console.error("Error marking all notifications as read:", error);
+        throw new Error("Failed to mark all notifications as read");
+    }
+};
+
+/**
  * Mark all notifications as read for the current shop owner
  * @returns {Promise} Response from server
  */

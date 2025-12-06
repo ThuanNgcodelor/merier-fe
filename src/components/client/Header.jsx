@@ -19,10 +19,12 @@ export default function Header() {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
-  
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const openMobile = useCallback(() => setMobileOpen(true), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
+
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const r = getUserRole();
@@ -52,7 +54,6 @@ export default function Header() {
   }, [token, setCart]);
 
   const hasRole = (role) => roles.includes(role);
-
   const handleGoToCart = () => { closeMobile(); navigate("/cart"); };
 
   useEffect(() => {
@@ -60,7 +61,6 @@ export default function Header() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
-  // Format thời gian từ timestamp
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return 'Không xác định';
     try {
@@ -80,7 +80,6 @@ export default function Header() {
     }
   };
 
-  // Format notification từ backend
   const formatNotification = (notification) => {
     let title = 'Thông báo đơn hàng';
     if (notification.orderId) {
@@ -96,7 +95,6 @@ export default function Header() {
     };
   };
 
-  // Fetch notifications từ API (chỉ lấy 3 đầu tiên)
   useEffect(() => {
     if (!isAuthenticated()) {
       setNotifications([]);
@@ -107,10 +105,9 @@ export default function Header() {
       try {
         const user = await getUser();
         if (!user || !user.id) return;
-        
+
         const data = await getNotificationsByUserId(user.id);
-        // Chỉ lấy notifications có orderId và lấy 3 đầu tiên
-        const orderNotifications = Array.isArray(data) 
+        const orderNotifications = Array.isArray(data)
           ? data.filter(n => n.orderId).slice(0, 3).map(formatNotification)
           : [];
         setNotifications(orderNotifications);
@@ -121,23 +118,16 @@ export default function Header() {
     };
 
     fetchNotifications();
-    
-    // Refresh notifications mỗi 30 giây
     const interval = setInterval(fetchNotifications, 30000);
-    
-    // Listen to custom event from NotificationPage to refresh immediately
-    const handleNotificationsUpdated = () => {
-      fetchNotifications();
-    };
+    const handleNotificationsUpdated = () => { fetchNotifications(); };
     window.addEventListener('notificationsUpdated', handleNotificationsUpdated);
-    
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('notificationsUpdated', handleNotificationsUpdated);
     };
   }, [token]);
 
-  // Close notifications when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
@@ -152,359 +142,292 @@ export default function Header() {
   const itemCount = cart?.items ? cart.items.length : 0;
 
   return (
-    <header className="header-area">
-      <div className="container">
-        <div className="row align-items-center justify-content-between position-relative">
+    <header style={{ background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)' }}>
+      {/* Top Bar */}
+      <div style={{ background: 'rgba(0,0,0,0.1)', padding: '6px 0', fontSize: '13px' }}>
+        <div className="container" style={{ maxWidth: '1200px' }}>
+          <div className="d-flex justify-content-between align-items-center">
+            {/* Left links */}
+            <div className="d-none d-md-flex gap-3">
+              {hasRole("ROLE_SHOP_OWNER") && (
+                <Link to="/shop-owner" style={{ color: 'white', textDecoration: 'none', opacity: 0.9 }}>
+                  Sales channel
+                </Link>
+              )}
+              <div className="d-flex gap-2 align-items-center">
+                <span style={{ color: 'white', opacity: 0.9 }}>Connect</span>
+                <a href="#" style={{ color: 'white', opacity: 0.9 }}><i className="fa fa-facebook"></i></a>
+                <a href="#" style={{ color: 'white', opacity: 0.9 }}><i className="fa fa-instagram"></i></a>
+              </div>
+            </div>
 
+            {/* Right links */}
+            <div className="d-flex gap-3 align-items-center">
+              <a href="#" style={{ color: 'white', textDecoration: 'none', opacity: 0.9, fontSize: '13px' }}>
+                <i className="fa fa-question-circle me-1"></i> Support
+              </a>
+              {isAuthenticated() ? (
+                <Link to="/information" style={{ color: 'white', textDecoration: 'none', opacity: 0.9, fontSize: '13px' }}>
+                  <i className="fa fa-user-circle me-1"></i> Account
+                </Link>
+              ) : (
+                <>
+                  <Link to="/register" style={{ color: 'white', textDecoration: 'none', opacity: 0.9, fontSize: '13px' }}>
+                    Register
+                  </Link>
+                  <div style={{ color: 'rgba(255,255,255,0.5)' }}>|</div>
+                  <Link to="/login" style={{ color: 'white', textDecoration: 'none', opacity: 0.9, fontSize: '13px' }}>
+                    Login
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Header */}
+      <div className="container py-3" style={{ maxWidth: '1200px' }}>
+        <div className="row align-items-center g-3">
           {/* Logo */}
           <div className="col-auto">
-            <div className="header-logo">
-              <Link to="/" onClick={closeMobile}>
-                <img className="logo-main" src={logoLight} width="153" height="30" alt="Logo" />
-              </Link>
-            </div>
+            <Link to="/" onClick={closeMobile}>
+              <img
+                src={logoLight}
+                width="160"
+                height="40"
+                alt="Logo"
+                style={{
+                  filter: 'brightness(0) invert(1)',
+                  display: 'block'
+                }}
+              />
+            </Link>
           </div>
 
           {/* Mobile hamburger */}
           <div className="col-auto d-lg-none ms-auto">
-            <button
-              className="btn p-2"
-              type="button"
-              aria-label="Open menu"
-              aria-expanded={mobileOpen}
-              aria-controls="mobile-drawer"
-              onClick={openMobile}
-              style={{ lineHeight: 1 }}
-            >
-              <i className="fa fa-bars" />
+            <button className="btn p-0" onClick={openMobile} style={{ color: 'white', border: 'none' }}>
+              <i className="fa fa-bars fs-5" />
             </button>
           </div>
 
-          {/* Desktop nav */}
+          {/* Desktop: Search */}
           <div className="col d-none d-lg-block">
-            <div className="d-flex align-items-center justify-content-end">
-              <ul
-                className="main-nav d-flex align-items-center justify-content-evenly flex-grow-1 mb-0"
-                style={{ listStyle: 'none', paddingLeft: 0 }}
-              >
-                <li><Link to="/shop">Shop</Link></li>
-                <li><Link to="/Contact">Contact</Link></li>
-                {hasRole("ROLE_SHOP_OWNER") && (
-                  <li><Link to="/shop-owner">My Shop</Link></li>
-                )}
-              </ul>
-
-              <form className="header-search-box d-none d-md-block me-2" onSubmit={(e) => {
+            <form
+              onSubmit={(e) => {
                 e.preventDefault();
-                const searchValue = e.target.querySelector('input').value;
-                if (searchValue.trim()) {
-                  navigate(`/shop?q=${encodeURIComponent(searchValue.trim())}`);
+                if (searchQuery.trim()) {
+                  navigate(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
+                  setSearchQuery("");
                 }
-              }}>
-                <input className="form-control" type="text" id="search" placeholder="Search" />
-                <button type="submit" className="btn-src" aria-label="Search">
-                  <i className="fa fa-search"></i>
-                </button>
-              </form>
+              }}
+              className="d-flex"
+            >
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  height: '40px',
+                  border: 'none',
+                  borderRadius: '2px',
+                  paddingLeft: '16px',
+                  paddingRight: '55px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  background: 'white'
+                }}
+              />
+            </form>
+          </div>
 
-              {isAuthenticated() && (
-                <div ref={notificationRef} className="position-relative d-inline-flex align-items-center me-2">
-                  <button
-                    onClick={() => setShowNotifications(!showNotifications)}
-                    className="btn p-2"
-                    style={{ lineHeight: 1, border: 'none', background: 'none' }}
-                    title="Notifications"
-                  >
-                    <span className="position-relative d-inline-block" style={{ width: 24, height: 24 }}>
-                      <i className="fa fa-bell" style={{ fontSize: '20px', color: '#333' }}></i>
-                      {unreadCount > 0 && (
-                        <span
-                          className="badge rounded-pill bg-danger"
-                          style={{
-                            position: 'absolute',
-                            top: -4,
-                            right: -4,
-                            fontSize: 10,
-                            minWidth: 16,
-                            height: 16,
-                            padding: 0,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            lineHeight: 1
-                          }}
-                        >
-                          {unreadCount}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-
-                  {showNotifications && (
-                    <div
+          {/* Desktop: Icons */}
+          <div className="col-auto d-none d-lg-flex align-items-center" style={{ gap: '24px' }}>
+            {/* Notification */}
+            {isAuthenticated() && (
+              <div ref={notificationRef} className="position-relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="btn p-0 position-relative border-0"
+                  style={{ background: 'transparent', color: 'white' }}
+                >
+                  <i className="fa fa-bell" style={{ fontSize: '24px' }}></i>
+                  {unreadCount > 0 && (
+                    <span
+                      className="position-absolute badge rounded-pill"
                       style={{
-                        position: 'absolute',
-                        top: '100%',
-                        right: 0,
-                        marginTop: '8px',
-                        width: '360px',
+                        top: '-5px',
+                        right: '-8px',
                         background: 'white',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                        zIndex: 1000,
-                        maxHeight: '500px',
-                        overflowY: 'auto'
+                        color: '#ee5a6f',
+                        fontSize: '10px',
+                        fontWeight: 600,
+                        padding: '3px 6px'
                       }}
                     >
-                      <div style={{
-                        padding: '16px',
-                        borderBottom: '1px solid #eee',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}>
-                        <h6 style={{ margin: 0, fontWeight: 600 }}>Thông báo</h6>
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => setShowNotifications(false)}
-                          style={{ padding: 0, lineHeight: 1 }}
-                        >
-                          <i className="fa fa-times"></i>
-                        </button>
-                      </div>
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
 
-                      {notifications.length === 0 ? (
-                        <div style={{
-                          padding: '40px 20px',
-                          textAlign: 'center',
-                          color: '#999'
-                        }}>
-                          <i className="fa fa-bell-slash" style={{ fontSize: '32px', marginBottom: '8px' }}></i>
-                          <p style={{ margin: 0 }}>Không có thông báo</p>
-                        </div>
-                      ) : (
-                        <div>
-                          {notifications.map(notification => (
-                            <div
-                              key={notification.id}
-                              onClick={async () => {
-                                // Mark as read via API
-                                try {
-                                  await markNotificationAsRead(notification.id);
-                                  // Refresh notifications
-                                  const user = await getUser();
-                                  if (user && user.id) {
-                                    const data = await getNotificationsByUserId(user.id);
-                                    const orderNotifications = Array.isArray(data) 
-                                      ? data.filter(n => n.orderId).slice(0, 3).map(formatNotification)
-                                      : [];
-                                    setNotifications(orderNotifications);
-                                  }
-                                } catch (err) {
-                                  console.error('Error marking notification as read in header:', err);
+                {showNotifications && (
+                  <div
+                    className="position-absolute bg-white"
+                    style={{
+                      top: 'calc(100% + 12px)',
+                      right: '-50px',
+                      width: '400px',
+                      zIndex: 1000,
+                      maxHeight: '500px',
+                      overflowY: 'auto',
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
+                    }}
+                  >
+                    <div className="d-flex justify-content-between align-items-center p-3 border-bottom">
+                      <h6 className="mb-0">Thông báo</h6>
+                      <button className="btn-close" onClick={() => setShowNotifications(false)}></button>
+                    </div>
+
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-5">
+                        <i className="fa fa-bell-slash mb-3" style={{ fontSize: '48px', color: '#ddd' }}></i>
+                        <p className="mb-0" style={{ color: '#999' }}>Không có thông báo</p>
+                      </div>
+                    ) : (
+                      <div>
+                        {notifications.map(notification => (
+                          <div
+                            key={notification.id}
+                            onClick={async () => {
+                              try {
+                                await markNotificationAsRead(notification.id);
+                                const user = await getUser();
+                                if (user && user.id) {
+                                  const data = await getNotificationsByUserId(user.id);
+                                  const updatedNotifications = Array.isArray(data)
+                                    ? data.filter(n => n.orderId).slice(0, 3).map(formatNotification)
+                                    : [];
+                                  setNotifications(updatedNotifications);
                                 }
-                                // Navigate đến trang orders nếu có orderId
                                 if (notification.orderId) {
                                   navigate(`/information/orders?orderId=${notification.orderId}`);
                                   setShowNotifications(false);
-                                } else {
-                                  navigate('/information/notifications');
-                                  setShowNotifications(false);
                                 }
-                              }}
-                              style={{
-                                padding: '12px 16px',
-                                borderBottom: '1px solid #f0f0f0',
-                                cursor: 'pointer',
-                                background: notification.isRead ? 'white' : '#f8f9ff',
-                                transition: 'background 0.2s',
-                                borderLeft: notification.isRead ? 'none' : '3px solid #ee4d2d'
-                              }}
-                              onMouseEnter={(e) => e.target.style.background = '#f5f5f5'}
-                              onMouseLeave={(e) => e.target.style.background = notification.isRead ? 'white' : '#f8f9ff'}
-                            >
-                              <div style={{ fontWeight: notification.isRead ? 500 : 600, fontSize: '14px', marginBottom: '4px' }}>
-                                {notification.title}
-                              </div>
-                              <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px', lineHeight: '1.4' }}>
-                                {notification.message}
-                              </div>
-                              <div style={{ fontSize: '11px', color: '#999' }}>
-                                {notification.time}
+                              } catch (error) {
+                                console.error('Error marking notification as read:', error);
+                              }
+                            }}
+                            className="p-3"
+                            style={{
+                              borderBottom: '1px solid #f0f0f0',
+                              cursor: 'pointer',
+                              background: notification.isRead ? 'white' : '#f9fafb'
+                            }}
+                          >
+                            <div className="d-flex gap-2">
+                              <div style={{
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: notification.isRead ? 'transparent' : '#ee5a6f',
+                                marginTop: '6px'
+                              }} />
+                              <div style={{ flex: 1 }}>
+                                <div className="fw-semibold mb-1" style={{ fontSize: '13px' }}>
+                                  {notification.title}
+                                </div>
+                                <div style={{ fontSize: '13px', color: '#666', marginBottom: '4px' }}>
+                                  {notification.message}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#999' }}>
+                                  {notification.time}
+                                </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div style={{
-                        padding: '12px 16px',
-                        borderTop: '1px solid #eee',
-                        textAlign: 'center'
-                      }}>
-                        <button
-                          className="btn btn-sm btn-primary w-100"
-                          onClick={() => {
-                            navigate('/information/notifications');
-                            setShowNotifications(false);
-                          }}
-                        >
-                          Xem tất cả
-                        </button>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
-              <Link
-                to="/cart"
-                onClick={handleGoToCart}
-                className="d-inline-flex align-items-center ms-1"
-                title="Cart"
-                style={{ lineHeight: 1 }}
-              >
-                <span className="position-relative d-inline-block" style={{ width: 24, height: 24 }}>
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 21 21"
-                    fill="currentColor"
-                    aria-hidden="true"
-                    style={{ position: 'absolute', left: 2, top: 2 }}
-                  >
-                    <path d="M6 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm10 0a3 3 0 1 0 .001 6A3 3 0 0 0 16 17zM2 1H0v2h2l3.6 7.59-1.35 2.45A2 2 0 0 0 6.42 15H18v-2H6.42l1.1-2h7.03a2 2 0 0 0 1.79-1.11L20.16 4 18.42 3 15.55 9H7.53L5.16 4 2 1z" />
-                  </svg>
-                  <span
-                    className="badge rounded-pill bg-danger"
-                    style={{
-                      position: 'absolute',
-                      top: -4,
-                      right: -4,
-                      fontSize: 10,
-                      minWidth: 16,
-                      height: 16,
-                      padding: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      lineHeight: 1
-                    }}
-                  >
-                    {itemCount ?? 0}
-                  </span>
+            {/* Cart */}
+            <button
+              onClick={handleGoToCart}
+              className="btn p-0 position-relative border-0"
+              style={{ background: 'transparent', color: 'white' }}
+            >
+              <i className="fa fa-shopping-cart" style={{ fontSize: '24px' }}></i>
+              {itemCount > 0 && (
+                <span
+                  className="position-absolute badge rounded-pill"
+                  style={{
+                    top: '-5px',
+                    right: '-8px',
+                    background: 'white',
+                    color: '#ee5a6f',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    padding: '3px 6px'
+                  }}
+                >
+                  {itemCount}
                 </span>
-              </Link>
-            </div>
+              )}
+            </button>
           </div>
-
-          <div className="col-auto d-lg-none" />
         </div>
       </div>
 
+      {/* Mobile Menu Overlay */}
       {mobileOpen && (
-        <div
-          onClick={closeMobile}
-          className="d-lg-none"
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 2000 }}
-        />
+        <>
+          <div
+            className="position-fixed top-0 start-0 w-100 h-100 bg-dark"
+            style={{ opacity: 0.5, zIndex: 1040 }}
+            onClick={closeMobile}
+          />
+          <div
+            className="offcanvas offcanvas-start show"
+            style={{ zIndex: 1050, visibility: 'visible' }}
+          >
+            <div className="offcanvas-header border-bottom">
+              <img src={logoLight} width="120" alt="Logo" />
+              <button
+                type="button"
+                className="btn-close"
+                onClick={closeMobile}
+              />
+            </div>
+            <div className="offcanvas-body">
+              <ul className="navbar-nav">
+                <NavLink to="/" close={closeMobile}>Home</NavLink>
+                <NavLink to="/shop" close={closeMobile}>Shop</NavLink>
+                <NavLink to="/about" close={closeMobile}>About</NavLink>
+                <NavLink to="/blog" close={closeMobile}>Blog</NavLink>
+                <NavLink to="/contact" close={closeMobile}>Contact</NavLink>
+                {hasRole("ROLE_SHOP_OWNER") && (
+                  <li className="nav-item mt-2">
+                    <Link
+                      to="/shop-owner"
+                      className="nav-link fw-bold text-primary"
+                      onClick={closeMobile}
+                    >
+                      <i className="fa fa-store me-2"></i>My Shop
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </>
       )}
-
-      <aside
-        id="mobile-drawer"
-        className="d-lg-none"
-        role="dialog"
-        aria-modal="true"
-        style={{
-          position: "fixed",
-          top: 0,
-          right: 0,
-          height: "100vh",
-          width: 280,
-          background: "#fff",
-          zIndex: 2001,
-          boxShadow: "0 0 30px rgba(0,0,0,0.25)",
-          transform: mobileOpen ? "translateX(0)" : "translateX(100%)",
-          transition: "transform 220ms ease-in-out",
-          display: "flex",
-          flexDirection: "column"
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottom: "1px solid #eee" }}>
-          <h5 style={{ margin: 0 }}>Menu</h5>
-          <button className="btn-close" aria-label="Close" onClick={closeMobile} />
-        </div>
-
-        <div style={{ padding: "12px 16px 0" }}>
-          <form className="d-flex" onSubmit={(e) => e.preventDefault()}>
-            <input className="form-control" type="text" placeholder="Search" style={{ height: 36, fontSize: 14 }} />
-            <button className="btn" type="submit" style={{ background: "#ff4d4f", color: "#fff", height: 36, padding: "0 12px" }}>
-              <i className="fa fa-search" />
-            </button>
-          </form>
-        </div>
-
-        <div style={{ padding: 16, paddingTop: 8, overflowY: "auto" }}>
-          <ul className="list-unstyled d-grid gap-3" style={{ marginBottom: 16 }}>
-            <li><Link to="/" onClick={closeMobile}>Home</Link></li>
-            <li><Link to="/shop" onClick={closeMobile}>Shop</Link></li>
-            {hasRole("ROLE_SHOP_OWNER") && (
-              <li><Link to="/shop-owner" onClick={closeMobile}>My Shop</Link></li>
-            )}
-
-            {/*{!authed ? (*/}
-            {/*  <li><Link to="/login" onClick={handleLoginClick}>Login</Link></li>*/}
-            {/*) : (*/}
-            {/*  <>*/}
-            {/*    <li><Link to="/information" onClick={goAccount}>My Account</Link></li>*/}
-            {/*    {hasRole("ROLE_VET") && <li><Link to="/vet" onClick={goVet}>Vet Portal</Link></li>}*/}
-            {/*    {hasRole("ROLE_SHELTER") && <li><Link to="/shelter" onClick={goShelter}>Shelter</Link></li>}*/}
-            {/*    {hasRole("ROLE_ADMIN") && <li><Link to="/admin" onClick={goAdmin}>Admin</Link></li>}*/}
-            {/*  </>*/}
-            {/*)}*/}
-            <li>
-              <Link
-                to="/cart"
-                onClick={handleGoToCart}
-                className="d-inline-flex align-items-center"
-                title="Cart"
-              >
-                <span className="position-relative d-inline-block" style={{ width: 24, height: 24 }}>
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 21 21"
-                    fill="currentColor"
-                    aria-hidden="true"
-                    style={{ position: 'absolute', left: 2, top: 2 }}
-                  >
-                    <path d="M6 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6zm10 0a3 3 0 1 0 .001 6A3 3 0 0 0 16 17zM2 1H0v2h2l3.6 7.59-1.35 2.45A2 2 0 0 0 6.42 15H18v-2H6.42l1.1-2h7.03a2 2 0 0 0 1.79-1.11L20.16 4 18.42 3 15.55 9H7.53L5.16 4 2 1z" />
-                  </svg>
-                  <span
-                    className="badge rounded-pill bg-danger"
-                    style={{
-                      position: 'absolute',
-                      top: -4,
-                      right: -4,
-                      fontSize: 10,
-                      minWidth: 16,
-                      height: 16,
-                      padding: 0,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      lineHeight: 1
-                    }}
-                  >
-                    {itemCount ?? 0}
-                  </span>
-                </span>
-                <span style={{ marginLeft: 8 }}>Cart</span>
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </aside>
     </header>
   );
 }

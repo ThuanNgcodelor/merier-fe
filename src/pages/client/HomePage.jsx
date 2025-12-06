@@ -1,57 +1,35 @@
 import Header from "../../components/client/Header.jsx";
-import AllProduct from "../../components/client/product/AllProduct.jsx";
-import Slider from "../../components/client/Slider.jsx";
-import { getMyPets } from "../../api/user.js";
-import { useState, useEffect } from "react";
-import ChatBotWidget from "../../components/client/ChatBotWidget.jsx";
 import Footer from "../../components/client/Footer.jsx";
-import Swal from "sweetalert2";
+import ChatBotWidget from "../../components/client/ChatBotWidget.jsx";
+import BannerCarousel from "../../components/client/BannerCarousel.jsx";
+import CategoryGrid from "../../components/client/CategoryGrid.jsx";
+import AllProduct from "../../components/client/product/AllProduct.jsx";
 
 export default function HomePage() {
-  const [selectedVet, setSelectedVet] = useState(null);
-  const [, setPets] = useState([]);
-
-  useEffect(() => {
-    if (selectedVet) {
-      (async () => {
-        try {
-          const data = await getMyPets();
-          setPets(Array.isArray(data) ? data : []);
-        } catch {
-          setPets([]);
-        }
-      })();
-    }
-  }, [selectedVet]);
-
-
   return (
-    <div className="wrapper">
+    <div className="wrapper" style={{ background: '#F5F5F5', minHeight: '100vh' }}>
       <Header />
-      <main className="main-content">
-        <Slider />
-        <AllProduct />
-        {selectedVet && (
-          <div className="vf-backdrop">
-            <div className="vf-modal p-4 bg-white rounded shadow">
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <h5 className="m-0">Book Appointment</h5>
-                <button
-                  className="btn btn-sm btn-outline-secondary"
-                  onClick={() => setSelectedVet(null)}
-                >
-                  ✕
-                </button>
+      <main>
+        {/* Hero Banner Section */}
+        <BannerCarousel />
+
+        {/* Category Section */}
+        <CategoryGrid />
+
+        {/* Products Section */}
+        <div style={{ background: 'white', marginTop: '8px', padding: '24px 0' }}>
+          <div className="container" style={{ maxWidth: '1200px' }}>
+            <div className="d-flex align-items-center justify-content-between mb-4">
+              <h4 style={{ fontSize: '16px', color: '#757575', textTransform: 'uppercase', margin: 0 }}>
+                Gợi Ý Hôm Nay
+              </h4>
+              <div style={{ fontSize: '14px', color: '#ee5a6f', cursor: 'pointer' }}>
+                Xem thêm →
               </div>
-              <div className="mb-2 text-muted small">
-                {selectedVet.specialization || "Veterinarian"} —{" "}
-                {selectedVet.clinicAddress || "Clinic"}
-                <br />
-                {selectedVet.clinicAddress}
-              </div>
-                     </div>
+            </div>
+            <AllProduct />
           </div>
-        )}
+        </div>
       </main>
       <Footer />
       <ChatBotWidget />

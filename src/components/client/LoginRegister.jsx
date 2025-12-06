@@ -16,7 +16,7 @@ export default function Auth(){
         confirmPassword: ''
     });
     const [error, setError] = useState('');
-    const [fieldErrors, setFieldErrors] = useState({}); // Lưu validation errors theo từng field
+    const [fieldErrors, setFieldErrors] = useState({});
     const [,setLoading] = useState(false);
     const [success, setSuccess] = useState("");
     const navigate = useNavigate();
@@ -48,10 +48,6 @@ export default function Auth(){
                     navigate("/shop-owner");
                 } else if (roles.includes("ROLE_USER")) {
                     navigate("/information");
-                }else if ( roles.includes("ROLE_VET")){
-                    navigate("/vet")
-                }else if ( roles.includes("ROLE_SHELTER")){
-                    navigate("/shelter")
                 }
             }
         }
@@ -164,7 +160,7 @@ export default function Auth(){
                 // Hiển thị tổng hợp lỗi nếu có (trừ _general đã được set ở trên)
                 const errorMessages = Object.entries(responseData)
                     .filter(([key, value]) => key !== '_general' && value)
-                    .map(([key, value]) => value);
+                    .map(([, value]) => value);
                     
                 if (errorMessages.length > 0 && !responseData._general) {
                     setError(errorMessages.join('. '));

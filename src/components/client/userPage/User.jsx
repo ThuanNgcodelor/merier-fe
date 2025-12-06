@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {Link, useLocation, useNavigate} from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getUserRole, isAuthenticated, logout } from "../../../api/auth.js";
 import { getUser } from "../../../api/user.js";
 import Address from "./Address.jsx";
@@ -58,139 +58,270 @@ export default function User() {
 
     return (
         <>
-            <section className="page-header-area" style={{ backgroundColor: '#f8eefa' }}>
-                <div className="container">
-                    <div className="row">
-                        <div className="col-sm-8">
-                            <div className="page-header-content">
-                                <ol className="breadcrumb">
-                                    <li className="breadcrumb-item"><Link to="">David-Nguyen</Link></li>
-                                </ol>
-                                <h2 className="page-header-title">My Account</h2>
+            {/* Header Section */}
+            <section style={{ background: '#F5F5F5', padding: '0', margin: '0' }}>
+                <div className="container" style={{ maxWidth: '1200px', padding: '0' }}>
+                    {/* User Profile Bar */}
+                    <div
+                        style={{
+                            background: 'linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%)',
+                            padding: '20px 16px',
+                            marginBottom: '12px'
+                        }}
+                    >
+                        <div className="d-flex align-items-center gap-3">
+                            {/* Avatar */}
+                            <div
+                                style={{
+                                    width: '50px',
+                                    height: '50px',
+                                    borderRadius: '50%',
+                                    background: '#E8ECEF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    border: '2px solid white',
+                                    flexShrink: 0
+                                }}
+                            >
+                                <i className="fa fa-user" style={{ fontSize: '20px', color: '#457B9D' }}></i>
                             </div>
-                        </div>
-                        <div className="col-sm-4 d-sm-flex justify-content-end align-items-end">
-                            <h5 className="showing-pagination-results"> / Information</h5>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="account-area section-space">
-                <div className="container">
-                    <div className="row">
-                        <div className="col-lg-12">
-                            <div className="myaccount-page-wrapper">
-                                <div className="row">
-                                    <div className="col-lg-3 col-md-4">
-                                        <nav>
-                                            <div className="myaccount-tab-menu nav nav-tabs" id="nav-tab" role="tablist">
-                                                <button
-                                                    className={`nav-link${activeTab === "dashboard" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("dashboard")}
-                                                >
-                                                    <i className="fas fa-home me-2"></i>
-                                                    Dashboard
-                                                </button>
-                                                <button
-                                                    className={`nav-link${activeTab === "orders" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("orders")}
-                                                >
-                                                    <i className="fas fa-shopping-bag me-2"></i>
-                                                    Orders
-                                                </button>
-                                                <button className={`nav-link${activeTab === "address" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("address")}>
-                                                    <i className="fas fa-map-marker-alt me-2"></i>
-                                                    Address
-                                                </button>
-                                                <button
-                                                    className={`nav-link${activeTab === "account-info" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("account-info")}
-                                                >
-                                                    <i className="fas fa-user me-2"></i>
-                                                    Account Details
-                                                </button>
-                                                <button
-                                                    className={`nav-link${activeTab === "role-request" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("role-request")}
-                                                >
-                                                    <i className="fas fa-user-tie me-2"></i>
-                                                    Role Request
-                                                </button>
-                                                <button
-                                                    className={`nav-link${activeTab === "notifications" ? " active" : ""}`}
-                                                    onClick={() => handleTabClick("notifications")}
-                                                >
-                                                    <i className="fas fa-bell me-2"></i>
-                                                    Notifications
-                                                </button>
-                                                
-                                                <button
-                                                    className="nav-link"
-                                                    onClick={handleLogout}
-                                                >
-                                                    <i className="fas fa-sign-out-alt me-2"></i>
-                                                    Logout
-                                                </button>
-                                            </div>
-                                        </nav>
-                                    </div>
-                                    <div className="col-lg-9 col-md-8">
-                                        <div className="tab-content">
-                                            {/* Dashboard Tab */}
-                                            {activeTab === "dashboard" && (
-                                                <div className="tab-pane fade show active">
-                                                    <div className="myaccount-content">
-                                                        <h3>Dashboard</h3>
-                                                        <div className="welcome">
-                                                            <p>
-                                                                Hello, <strong>{userData?.username}</strong> (If Not <strong>{userData?.username} !</strong>
-                                                                <a href="" className="logout"> Logout</a>)
-                                                            </p>
-                                                        </div>
-                                                        <p className="mb-0">
-                                                            From your account dashboard. you can easily check & view your recent orders, manage your shipping and billing addresses and edit your password and account details.
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Orders Tab */}
-                                            {activeTab === "orders" && (
-                                                <OrderList />
-                                            )}
-
-                                            {/* Address Edit Tab */}
-                                            {activeTab === "address" && (
-                                                <Address />
-                                            )}
-
-                                            {/* Account Info Tab */}
-                                            {activeTab === "account-info" && (
-                                                <AccountInfo />
-                                            )}
-
-                                            {/* Role Request Tab */}
-                                            {activeTab === "role-request" && (
-                                                <div className="tab-pane fade show active">
-                                                    <RoleRequestForm />
-                                                </div>
-                                            )}
-
-                                            {/* Notifications Tab */}
-                                            {activeTab === "notifications" && (
-                                                <div className="tab-pane fade show active">
-                                                    <NotificationPage />
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
+                            {/* User Info */}
+                            <div>
+                                <div style={{ fontSize: '16px', fontWeight: 600, color: '#1D3557', marginBottom: '2px' }}>
+                                    _{userData?.username || 'User'}
+                                </div>
+                                <div style={{ fontSize: '13px', color: '#457B9D' }}>
+                                    <i className="fa fa-pencil me-1" style={{ fontSize: '11px' }}></i> Edit Profile
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <h6 className="visually-hidden">My Account</h6>
+
+                    {/* Main Content Area */}
+                    <div className="row g-3" style={{ marginBottom: '24px' }}>
+                        {/* Sidebar */}
+                        <div className="col-12 col-lg-3">
+                            <div style={{ background: 'white', borderRadius: '4px', overflow: 'hidden' }}>
+                                {/* Menu Items */}
+                                <div>
+                                    <button
+                                        onClick={() => handleTabClick("dashboard")}
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            border: 'none',
+                                            background: activeTab === "dashboard" ? '#FFF6F0' : 'transparent',
+                                            color: activeTab === "dashboard" ? '#EE4D2D' : '#555',
+                                            textAlign: 'left',
+                                            borderLeft: activeTab === "dashboard" ? '3px solid #EE4D2D' : '3px solid transparent',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (activeTab !== "dashboard") {
+                                                e.currentTarget.style.background = '#F9FAFB';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (activeTab !== "dashboard") {
+                                                e.currentTarget.style.background = 'transparent';
+                                            }
+                                        }}
+                                    >
+                                        <i className="fa fa-user" style={{ width: '20px', textAlign: 'center' }}></i>
+                                        My Account
+                                    </button>
+
+                                    <div style={{ paddingLeft: '48px' }}>
+                                        <button
+                                            onClick={() => handleTabClick("account-info")}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 0',
+                                                border: 'none',
+                                                background: 'transparent',
+                                                color: activeTab === "account-info" ? '#EE4D2D' : '#555',
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                fontSize: '13px',
+                                                transition: 'color 0.2s'
+                                            }}
+                                        >
+                                            Profile
+                                        </button>
+                                        <button
+                                            onClick={() => handleTabClick("address")}
+                                            style={{
+                                                width: '100%',
+                                                padding: '10px 0',
+                                                border: 'none',
+                                                background: 'transparent',
+                                                color: activeTab === "address" ? '#EE4D2D' : '#555',
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                fontSize: '13px',
+                                                transition: 'color 0.2s'
+                                            }}
+                                        >
+                                            Address
+                                        </button>
+                                    </div>
+
+                                    <button
+                                        onClick={() => handleTabClick("orders")}
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            border: 'none',
+                                            background: activeTab === "orders" ? '#FFF6F0' : 'transparent',
+                                            color: activeTab === "orders" ? '#EE4D2D' : '#555',
+                                            textAlign: 'left',
+                                            borderLeft: activeTab === "orders" ? '3px solid #EE4D2D' : '3px solid transparent',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (activeTab !== "orders") {
+                                                e.currentTarget.style.background = '#F9FAFB';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (activeTab !== "orders") {
+                                                e.currentTarget.style.background = 'transparent';
+                                            }
+                                        }}
+                                    >
+                                        <i className="fa fa-shopping-bag" style={{ width: '20px', textAlign: 'center' }}></i>
+                                        My Orders
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleTabClick("notifications")}
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            border: 'none',
+                                            background: activeTab === "notifications" ? '#FFF6F0' : 'transparent',
+                                            color: activeTab === "notifications" ? '#EE4D2D' : '#555',
+                                            textAlign: 'left',
+                                            borderLeft: activeTab === "notifications" ? '3px solid #EE4D2D' : '3px solid transparent',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (activeTab !== "notifications") {
+                                                e.currentTarget.style.background = '#F9FAFB';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (activeTab !== "notifications") {
+                                                e.currentTarget.style.background = 'transparent';
+                                            }
+                                        }}
+                                    >
+                                        <i className="fa fa-bell" style={{ width: '20px', textAlign: 'center' }}></i>
+                                        Notifications
+                                    </button>
+
+                                    <button
+                                        onClick={() => handleTabClick("role-request")}
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            border: 'none',
+                                            background: activeTab === "role-request" ? '#FFF6F0' : 'transparent',
+                                            color: activeTab === "role-request" ? '#EE4D2D' : '#555',
+                                            textAlign: 'left',
+                                            borderLeft: activeTab === "role-request" ? '3px solid #EE4D2D' : '3px solid transparent',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            if (activeTab !== "role-request") {
+                                                e.currentTarget.style.background = '#F9FAFB';
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            if (activeTab !== "role-request") {
+                                                e.currentTarget.style.background = 'transparent';
+                                            }
+                                        }}
+                                    >
+                                        <i className="fa fa-user-tie" style={{ width: '20px', textAlign: 'center' }}></i>
+                                        Role Request
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Main Content */}
+                        <div className="col-12 col-lg-9">
+                            <div style={{ background: 'white', borderRadius: '4px', minHeight: '400px' }}>
+                                {/* Dashboard Tab */}
+                                {activeTab === "dashboard" && (
+                                    <div className="p-4">
+                                        <h5 style={{ color: '#1D3557', marginBottom: '16px' }}>Dashboard</h5>
+                                        <p style={{ color: '#555', fontSize: '14px', lineHeight: '1.6' }}>
+                                            Xin chào, <strong>{userData?.username}</strong>!
+                                        </p>
+                                        <p style={{ color: '#555', fontSize: '14px', lineHeight: '1.6' }}>
+                                            Từ trang quản lý tài khoản, bạn có thể xem đơn hàng gần đây, quản lý địa chỉ giao hàng và chỉnh sửa thông tin cá nhân.
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Orders Tab */}
+                                {activeTab === "orders" && (
+                                    <OrderList />
+                                )}
+
+                                {/* Address Tab */}
+                                {activeTab === "address" && (
+                                    <div className="p-4">
+                                        <Address />
+                                    </div>
+                                )}
+
+                                {/* Account Info Tab */}
+                                {activeTab === "account-info" && (
+                                    <div className="p-4">
+                                        <AccountInfo />
+                                    </div>
+                                )}
+
+                                {/* Role Request Tab */}
+                                {activeTab === "role-request" && (
+                                    <div className="p-4">
+                                        <RoleRequestForm />
+                                    </div>
+                                )}
+
+                                {/* Notifications Tab */}
+                                {activeTab === "notifications" && (
+                                    <div className="p-4">
+                                        <NotificationPage />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </>

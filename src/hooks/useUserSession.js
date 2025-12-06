@@ -16,10 +16,8 @@ export default function useUserSession(confirm = false) {
             lng: pos.coords.longitude,
           };
           Cookies.set("userLocation", JSON.stringify(coords), { expires: 7 });
-          console.log("📍 User location saved:", coords);
         },
         (err) => {
-          console.warn("⚠️ Location error:", err.message);
           Cookies.set("userLocation", "denied", { expires: 7 });
         }
       );

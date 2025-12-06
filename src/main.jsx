@@ -1,3 +1,5 @@
+window.global = window;
+
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 
@@ -14,12 +16,15 @@ import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 
 
-import {CartProvider} from "./contexts/CartContext.jsx";
+import { CartProvider } from "./contexts/CartContext.jsx";
+import { LoadingProvider } from "./contexts/LoadingContext.jsx";
 
 createRoot(document.getElementById('root')).render(
     <>
-        <CartProvider>
-              <App />
-        </CartProvider>
+        <LoadingProvider>
+            <CartProvider>
+                <App />
+            </CartProvider>
+        </LoadingProvider>
     </>
 )
