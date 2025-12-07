@@ -1,16 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { getOrdersByUser } from "../../../api/order.js";
+import { getOrdersByUser, cancelOrder } from "../../../api/order.js";
+import { fetchImageById } from "../../../api/image.js";
+import { fetchProductById } from "../../../api/product.js";
+import Loading from "../Loading.jsx";
 
 const PAGE_SIZE = 5;
 
 const STATUS_CONFIG = {
-  ALL: { label: "Tất cả", color: "#555", bg: "#f8f8f8" },
-  PENDING: { label: "Chờ xác nhận", color: "#ee4d2d", bg: "#fff5f0" },
-  APPROVED: { label: "Vận chuyển", color: "#2673dd", bg: "#e8f4ff" },
-  COMPLETED: { label: "Hoàn thành", color: "#26aa99", bg: "#e8f9f7" },
-  CANCELLED: { label: "Đã hủy", color: "#999", bg: "#f5f5f5" },
-  REJECTED: { label: "Trả hàng/Hoàn tiền", color: "#ee4d2d", bg: "#fff5f0" }
+  ALL: { label: "All", color: "#555", bg: "#f8f8f8" },
+  PENDING: { label: "Pending", color: "#ee4d2d", bg: "#fff5f0" },
+  APPROVED: { label: "Shipping", color: "#2673dd", bg: "#e8f4ff" },
+  COMPLETED: { label: "Completed", color: "#26aa99", bg: "#e8f9f7" },
+  CANCELLED: { label: "Cancelled", color: "#999", bg: "#f5f5f5" },
+  REJECTED: { label: "Return/Refund", color: "#ee4d2d", bg: "#fff5f0" }
 };
 
 const formatVND = (n) => (Number(n) || 0).toLocaleString("vi-VN") + "đ";
@@ -44,7 +47,7 @@ export default function OrderList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState("ALL");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [imageUrls, setImageUrls] = useState({});
 
   useEffect(() => {
     (async () => {
@@ -54,13 +57,104 @@ export default function OrderList() {
         const data = await getOrdersByUser();
         setOrders(Array.isArray(data) ? data : []);
       } catch (e) {
-        setError("Không thể tải đơn hàng. Vui lòng thử lại.");
+        setError("Cannot load orders. Please try again.");
         console.error(e);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
+
+  // Load images for order items
+  useEffect(() => {
+    if (orders.length === 0) return;
+
+    let isActive = true;
+    const urls = {};
+    const productCache = new Map();
+
+    const loadImages = async () => {
+      const imagePromises = [];
+      
+      orders.forEach((order) => {
+        (order.orderItems || []).forEach((item) => {
+          const itemKey = item.id || `${item.productId}-${item.sizeId}`;
+          let imageId = item.imageId;
+          
+          // If no imageId, try to fetch from product
+          if (!imageId && item.productId) {
+            imagePromises.push(
+              (async () => {
+                try {
+                  let product = productCache.get(item.productId);
+                  if (!product) {
+                    const prodRes = await fetchProductById(item.productId);
+                    product = prodRes?.data;
+                    if (product) productCache.set(item.productId, product);
+                  }
+                  imageId = product?.imageId || null;
+                  
+                  if (imageId && !urls[imageId]) {
+                    try {
+                      const res = await fetchImageById(imageId);
+                      const blob = new Blob([res.data], {
+                        type: res.headers["content-type"] || "image/jpeg",
+                      });
+                      const url = URL.createObjectURL(blob);
+                      urls[imageId] = url;
+                      urls[itemKey] = url; // Also store by item key
+                    } catch {
+                      urls[imageId] = null;
+                      urls[itemKey] = null;
+                    }
+                  } else {
+                    urls[itemKey] = urls[imageId] || null;
+                  }
+                } catch {
+                  urls[itemKey] = null;
+                }
+              })()
+            );
+          } else if (imageId && !urls[imageId]) {
+            imagePromises.push(
+              fetchImageById(imageId)
+                .then((res) => {
+                  const blob = new Blob([res.data], {
+                    type: res.headers["content-type"] || "image/jpeg",
+                  });
+                  const url = URL.createObjectURL(blob);
+                  urls[imageId] = url;
+                  urls[itemKey] = url; // Also store by item key
+                })
+                .catch(() => {
+                  urls[imageId] = null;
+                  urls[itemKey] = null;
+                })
+            );
+          } else if (imageId && urls[imageId]) {
+            urls[itemKey] = urls[imageId];
+          }
+        });
+      });
+
+      await Promise.all(imagePromises);
+
+      if (isActive) {
+        setImageUrls(urls);
+      }
+    };
+
+    loadImages();
+
+    return () => {
+      isActive = false;
+      Object.values(imageUrls).forEach((url) => {
+        if (url && url.startsWith("blob:")) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [orders]);
 
   // Auto expand order from URL
   useEffect(() => {
@@ -75,7 +169,7 @@ export default function OrderList() {
     }
   }, [searchParams, orders]);
 
-  // Filter orders by tab and search
+  // Filter orders by tab
   const filteredOrders = useMemo(() => {
     let result = orders;
 
@@ -84,19 +178,8 @@ export default function OrderList() {
       result = result.filter(order => order.orderStatus === activeTab);
     }
 
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
-      result = result.filter(order =>
-        order.id?.toLowerCase().includes(query) ||
-        order.orderItems?.some(item =>
-          item.productName?.toLowerCase().includes(query)
-        )
-      );
-    }
-
     return result;
-  }, [orders, activeTab, searchQuery]);
+  }, [orders, activeTab]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / PAGE_SIZE));
 
@@ -130,19 +213,55 @@ export default function OrderList() {
     );
   };
 
+  const handleViewShop = (order) => {
+    // Try to navigate to shop page, fallback to home if shopId not available
+    if (order.shopId) {
+      navigate(`/shop/${order.shopId}`);
+    } else {
+      navigate('/shop');
+    }
+  };
+
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError('');
+      setSuccessMessage('');
+      await cancelOrder(orderId);
+      setSuccessMessage('Order cancelled successfully');
+      const data = await getOrdersByUser();
+      setOrders(Array.isArray(data) ? data : []);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (e) {
+      setError(e.message || 'Failed to cancel order. Please try again.');
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="tab-pane fade show active">
-      <div className="myaccount-content">
-        {/* Status Tabs */}
+    <div style={{ padding: '0', width: '100%', maxWidth: '100%', margin: 0 }}>
+      <div style={{ padding: '20px 24px', borderBottom: '1px solid #f0f0f0', background: 'white', width: '100%' }}>
+        <h4 style={{ fontSize: '20px', fontWeight: 500, color: '#222', margin: 0 }}>My Orders</h4>
+      </div>
+      
+      <div style={{ background: 'white', minHeight: '400px', width: '100%', margin: 0 }}>
+        {/* Status Tabs - Shopee Style */}
         <div style={{
           background: 'white',
-          borderBottom: '1px solid #E8ECEF',
-          marginBottom: '20px',
+          borderBottom: '1px solid #f0f0f0',
           position: 'sticky',
           top: 0,
           zIndex: 10
         }}>
-          <div className="d-flex" style={{ overflowX: 'auto' }}>
+          <div className="d-flex" style={{ overflowX: 'auto', padding: '0 24px' }}>
             {Object.keys(STATUS_CONFIG).map(status => (
               <button
                 key={status}
@@ -151,17 +270,16 @@ export default function OrderList() {
                   setPage(1);
                 }}
                 style={{
-                  flex: '1',
-                  minWidth: '120px',
-                  padding: '16px 12px',
+                  padding: '16px 20px',
                   border: 'none',
                   background: 'transparent',
-                  color: activeTab === status ? '#EE4D2D' : '#555',
-                  borderBottom: activeTab === status ? '2px solid #EE4D2D' : '2px solid transparent',
+                  color: activeTab === status ? '#ee4d2d' : '#555',
+                  borderBottom: activeTab === status ? '2px solid #ee4d2d' : '2px solid transparent',
                   fontWeight: activeTab === status ? 500 : 400,
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 {STATUS_CONFIG[status].label}
@@ -170,177 +288,233 @@ export default function OrderList() {
           </div>
         </div>
 
-
         {loading && (
-          <div className="text-center py-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="sr-only">Loading...</span>
-            </div>
+          <div style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
+            <Loading />
           </div>
         )}
 
-        {error && <div className="alert alert-danger">{error}</div>}
+        {error && (
+          <div style={{ padding: '16px 24px', background: 'white' }}>
+            <div className="alert alert-danger" style={{ margin: 0 }}>{error}</div>
+          </div>
+        )}
+
+        {successMessage && (
+          <div style={{ padding: '16px 24px', background: 'white' }}>
+            <div className="alert alert-success" style={{ margin: 0 }}>{successMessage}</div>
+          </div>
+        )}
 
         {!loading && !error && filteredOrders.length === 0 && (
-          <div className="text-center py-5">
-            <img
-              src="/assets/images/no-orders.png"
-              alt="No orders"
-              style={{ maxWidth: '100px', opacity: 0.5, marginBottom: '16px' }}
-              onError={(e) => e.currentTarget.style.display = 'none'}
-            />
-            <p style={{ color: '#999', fontSize: '14px' }}>
-              {searchQuery ? 'Không tìm thấy đơn hàng phù hợp' : 'Chưa có đơn hàng'}
+          <div className="text-center py-5" style={{ background: 'white', padding: '60px 20px' }}>
+            <div style={{
+              width: '120px',
+              height: '120px',
+              margin: '0 auto 16px',
+              background: '#f5f5f5',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <i className="fa fa-clipboard-list" style={{ fontSize: '48px', color: '#ddd' }}></i>
+            </div>
+            <p style={{ color: '#999', fontSize: '14px', margin: 0 }}>
+              No orders yet
             </p>
           </div>
         )}
 
         {!loading && !error && pagedOrders.length > 0 && (
           <>
-            {/* Order Cards */}
-            <div className="order-list">
+            {/* Order Cards - Shopee Style */}
+            <div style={{ padding: '24px', background: 'white' }}>
               {pagedOrders.map((order) => (
                 <div
                   key={order.id}
                   data-order-id={order.id}
                   style={{
                     background: 'white',
-                    border: '1px solid #E8ECEF',
+                    border: '1px solid #f0f0f0',
                     borderRadius: '4px',
-                    marginBottom: '12px',
+                    marginBottom: '16px',
                     overflow: 'hidden'
                   }}
                 >
-                  {/* Order Header */}
+                  {/* Order Header - Shopee Style */}
                   <div
                     className="d-flex justify-content-between align-items-center p-3"
                     style={{
-                      borderBottom: '1px solid #F5F5F5',
-                      background: '#FAFAFA'
+                      borderBottom: '1px solid #f0f0f0',
+                      background: '#fafafa'
                     }}
                   >
-                    <div className="d-flex align-items-center gap-2">
-                      <span
-                        style={{
-                          background: '#EE4D2D',
-                          color: 'white',
-                          padding: '2px 6px',
-                          borderRadius: '2px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          textTransform: 'uppercase'
-                        }}
-                      >
-                        HOT
-                      </span>
+                    <div className="d-flex align-items-center gap-2 flex-wrap">
                       <span style={{ fontSize: '14px', fontWeight: 500, color: '#222' }}>
                         MERIER STORE
                       </span>
                       <button
                         className="btn btn-sm"
+                        onClick={() => handleViewShop(order)}
                         style={{
                           background: 'transparent',
-                          border: '1px solid #EE4D2D',
-                          color: '#EE4D2D',
-                          fontSize: '11px',
-                          padding: '2px 8px',
-                          borderRadius: '2px'
+                          border: '1px solid #ee4d2d',
+                          color: '#ee4d2d',
+                          fontSize: '12px',
+                          padding: '4px 12px',
+                          borderRadius: '2px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = '#ee4d2d';
+                          e.currentTarget.style.color = 'white';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = '#ee4d2d';
                         }}
                       >
                         <i className="fa fa-comment me-1"></i> Chat
                       </button>
                       <button
                         className="btn btn-sm"
+                        onClick={() => handleViewShop(order)}
                         style={{
                           background: 'transparent',
-                          border: '1px solid #E8ECEF',
+                          border: '1px solid #ddd',
                           color: '#555',
-                          fontSize: '11px',
-                          padding: '2px 8px',
-                          borderRadius: '2px'
+                          fontSize: '12px',
+                          padding: '4px 12px',
+                          borderRadius: '2px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = '#ee4d2d';
+                          e.currentTarget.style.color = '#ee4d2d';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = '#ddd';
+                          e.currentTarget.style.color = '#555';
                         }}
                       >
-                        <i className="fa fa-store me-1"></i> Xem Shop
+                        View Shop
                       </button>
                     </div>
-                    <div className="text-end">
+                    <div className="d-flex align-items-center gap-2">
+                      {order.orderStatus === 'COMPLETED' && (
+                        <span style={{ fontSize: '12px', color: '#26aa99' }}>
+                          <i className="fa fa-truck me-1"></i> Delivery successful
+                        </span>
+                      )}
                       {getStatusBadge(order.orderStatus)}
                     </div>
                   </div>
 
-                  {/* Order Items */}
+                  {/* Order Items - Shopee Style */}
                   <div className="p-3">
-                    {(order.orderItems || []).map((item, idx) => (
-                      <div
-                        key={item.id || idx}
-                        className="d-flex gap-3 mb-3 pb-3"
-                        style={{
-                          borderBottom: idx < order.orderItems.length - 1 ? '1px solid #F5F5F5' : 'none'
-                        }}
-                      >
-                        {/* Product Image */}
+                    {(order.orderItems || []).map((item, idx) => {
+                      const itemKey = item.id || `${item.productId}-${item.sizeId}`;
+                      const imgUrl = imageUrls[item.imageId] || imageUrls[itemKey] || null;
+                      return (
                         <div
+                          key={item.id || idx}
+                          className="d-flex gap-3 mb-3 pb-3"
                           style={{
-                            width: '80px',
-                            height: '80px',
-                            border: '1px solid #E8ECEF',
-                            borderRadius: '4px',
-                            overflow: 'hidden',
-                            flexShrink: 0,
-                            background: '#F5F5F5',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
+                            borderBottom: idx < order.orderItems.length - 1 ? '1px solid #f0f0f0' : 'none'
                           }}
                         >
-                          <i className="fa fa-image" style={{ fontSize: '24px', color: '#CCC' }}></i>
-                        </div>
-
-                        {/* Product Info */}
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '14px', color: '#222', marginBottom: '4px' }}>
-                            {item.productName}
-                          </div>
-                          {item.sizeName && (
-                            <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
-                              Phân loại hàng: {item.sizeName}
+                          {/* Product Image */}
+                          <div
+                            style={{
+                              width: '80px',
+                              height: '80px',
+                              border: '1px solid #f0f0f0',
+                              borderRadius: '4px',
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                              background: '#f5f5f5',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            {imgUrl ? (
+                              <img
+                                src={imgUrl}
+                                alt={item.productName}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.nextElementSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div style={{
+                              display: imgUrl ? 'none' : 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '100%',
+                              height: '100%'
+                            }}>
+                              <i className="fa fa-image" style={{ fontSize: '24px', color: '#ccc' }}></i>
                             </div>
-                          )}
-                          <div style={{ fontSize: '12px', color: '#999' }}>
-                            x{item.quantity}
                           </div>
-                        </div>
 
-                        {/* Price */}
-                        <div className="text-end" style={{ minWidth: '100px' }}>
-                          <div style={{ fontSize: '14px', color: '#999', textDecoration: 'line-through', marginBottom: '4px' }}>
-                            {formatVND(item.unitPrice * 1.2)}
+                          {/* Product Info */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '14px', color: '#222', marginBottom: '4px', wordBreak: 'break-word' }}>
+                              {item.productName}
+                            </div>
+                            {item.sizeName && (
+                              <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
+                                Variant: {item.sizeName}
+                              </div>
+                            )}
+                            <div style={{ fontSize: '12px', color: '#999' }}>
+                              x{item.quantity}
+                            </div>
                           </div>
-                          <div style={{ fontSize: '14px', color: '#EE4D2D', fontWeight: 500 }}>
-                            {formatVND(item.unitPrice)}
+
+                          {/* Price */}
+                          <div className="text-end" style={{ minWidth: '120px', flexShrink: 0 }}>
+                            {item.originalPrice && item.originalPrice > item.unitPrice && (
+                              <div style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginBottom: '4px' }}>
+                                {formatVND(item.originalPrice)}
+                              </div>
+                            )}
+                            <div style={{ fontSize: '14px', color: '#ee4d2d', fontWeight: 500 }}>
+                              {formatVND(item.unitPrice)}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
-                  {/* Order Footer */}
+                  {/* Order Footer - Shopee Style */}
                   <div
                     className="d-flex justify-content-between align-items-center p-3"
                     style={{
-                      borderTop: '1px solid #F5F5F5',
-                      background: '#FFFAF5'
+                      borderTop: '1px solid #f0f0f0',
+                      background: '#fffaf5'
                     }}
                   >
-                    <div style={{ fontSize: '13px', color: '#555' }}>
+                    <div style={{ fontSize: '13px', color: '#666' }}>
                       <i className="fa fa-calendar me-1"></i> {fmtDateTime(order.updateTimestamp)}
                     </div>
                     <div className="d-flex align-items-center gap-3">
                       <div className="text-end">
                         <div style={{ fontSize: '12px', color: '#999', marginBottom: '4px' }}>
-                          Thành tiền:
+                          Total:
                         </div>
-                        <div style={{ fontSize: '18px', color: '#EE4D2D', fontWeight: 500 }}>
+                        <div style={{ fontSize: '18px', color: '#ee4d2d', fontWeight: 500 }}>
                           {formatVND(order.totalPrice)}
                         </div>
                       </div>
@@ -349,47 +523,95 @@ export default function OrderList() {
                           <button
                             className="btn"
                             style={{
-                              background: '#EE4D2D',
+                              background: '#ee4d2d',
                               color: 'white',
                               border: 'none',
                               padding: '8px 20px',
                               fontSize: '13px',
                               borderRadius: '2px',
-                              fontWeight: 500
+                              fontWeight: 500,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
                             }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f05d40'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#ee4d2d'}
                           >
-                            Mua Lại
+                            Buy Again
                           </button>
                         )}
                         {order.orderStatus === 'PENDING' && (
+                          <>
+                            <button
+                              className="btn"
+                              onClick={() => handleCancelOrder(order.id)}
+                              style={{
+                                background: 'white',
+                                color: '#ee4d2d',
+                                border: '1px solid #ee4d2d',
+                                padding: '8px 20px',
+                                fontSize: '13px',
+                                borderRadius: '2px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#fff5f0';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'white';
+                              }}
+                            >
+                              Cancel Order
+                            </button>
+                            <button
+                              className="btn"
+                              style={{
+                                background: 'white',
+                                color: '#555',
+                                border: '1px solid #ddd',
+                                padding: '8px 20px',
+                                fontSize: '13px',
+                                borderRadius: '2px',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = '#ee4d2d';
+                                e.currentTarget.style.color = '#ee4d2d';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = '#ddd';
+                                e.currentTarget.style.color = '#555';
+                              }}
+                            >
+                              Contact Seller
+                            </button>
+                          </>
+                        )}
+                        {order.orderStatus === 'APPROVED' && (
                           <button
                             className="btn"
+                            onClick={() => handleCancelOrder(order.id)}
                             style={{
                               background: 'white',
-                              color: '#555',
-                              border: '1px solid #E8ECEF',
+                              color: '#ee4d2d',
+                              border: '1px solid #ee4d2d',
                               padding: '8px 20px',
                               fontSize: '13px',
-                              borderRadius: '2px'
+                              borderRadius: '2px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#fff5f0';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'white';
                             }}
                           >
-                            Liên Hệ Người Bán
+                            Cancel Order
                           </button>
                         )}
-                        <button
-                          className="btn"
-                          onClick={() => navigate(`/information/orders?orderId=${order.id}`)}
-                          style={{
-                            background: 'white',
-                            color: '#555',
-                            border: '1px solid #E8ECEF',
-                            padding: '8px 20px',
-                            fontSize: '13px',
-                            borderRadius: '2px'
-                          }}
-                        >
-                          Xem chi tiết
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -399,59 +621,70 @@ export default function OrderList() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <nav className="mt-4">
-                <ul className="pagination justify-content-center">
-                  <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      style={{
-                        border: '1px solid #E8ECEF',
-                        color: '#555',
-                        borderRadius: '2px 0 0 2px'
-                      }}
-                    >
-                      ‹
-                    </button>
-                  </li>
+              <div style={{ padding: '24px', background: 'white', borderTop: '1px solid #f0f0f0' }}>
+                <nav>
+                  <ul className="pagination justify-content-center mb-0" style={{ gap: '4px' }}>
+                    <li className={`page-item ${page === 1 ? "disabled" : ""}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                        style={{
+                          border: '1px solid #ddd',
+                          color: page === 1 ? '#ccc' : '#555',
+                          background: 'white',
+                          padding: '8px 12px',
+                          cursor: page === 1 ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        ‹
+                      </button>
+                    </li>
 
-                  {pageNumbers.map((p, i) =>
-                    p === "…" ? (
-                      <li key={`el-${i}`} className="page-item disabled">
-                        <span className="page-link" style={{ border: '1px solid #E8ECEF', color: '#999' }}>…</span>
-                      </li>
-                    ) : (
-                      <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
-                        <button
-                          className="page-link"
-                          onClick={() => setPage(p)}
-                          style={{
-                            border: '1px solid #E8ECEF',
-                            color: p === page ? 'white' : '#555',
-                            background: p === page ? '#EE4D2D' : 'white'
-                          }}
-                        >
-                          {p}
-                        </button>
-                      </li>
-                    )
-                  )}
+                    {pageNumbers.map((p, i) =>
+                      p === "…" ? (
+                        <li key={`el-${i}`} className="page-item disabled">
+                          <span className="page-link" style={{ border: '1px solid #ddd', color: '#999', padding: '8px 12px' }}>…</span>
+                        </li>
+                      ) : (
+                        <li key={p} className={`page-item ${p === page ? "active" : ""}`}>
+                          <button
+                            className="page-link"
+                            onClick={() => setPage(p)}
+                            style={{
+                              border: '1px solid #ddd',
+                              color: p === page ? 'white' : '#555',
+                              background: p === page ? '#ee4d2d' : 'white',
+                              padding: '8px 12px',
+                              cursor: 'pointer',
+                              minWidth: '40px'
+                            }}
+                          >
+                            {p}
+                          </button>
+                        </li>
+                      )
+                    )}
 
-                  <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
-                    <button
-                      className="page-link"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      style={{
-                        border: '1px solid #E8ECEF',
-                        color: '#555',
-                        borderRadius: '0 2px 2px 0'
-                      }}
-                    >
-                      ›
-                    </button>
-                  </li>
-                </ul>
-              </nav>
+                    <li className={`page-item ${page === totalPages ? "disabled" : ""}`}>
+                      <button
+                        className="page-link"
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                        style={{
+                          border: '1px solid #ddd',
+                          color: page === totalPages ? '#ccc' : '#555',
+                          background: 'white',
+                          padding: '8px 12px',
+                          cursor: page === totalPages ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        ›
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
             )}
           </>
         )}

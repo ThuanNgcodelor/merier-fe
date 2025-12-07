@@ -11,10 +11,32 @@ const createApiInstance = (baseURL) => {
 
     api.interceptors.request.use(
         (config) => {
-            const token = Cookies.get("accessToken");
-            if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
+            // Danh sách các endpoint auth public - không cần token
+            const publicAuthEndpoints = [
+                '/login',
+                '/register',
+                '/forgotPassword',
+                '/verifyOtp',
+                '/updatePassword',
+                '/login/google',
+            ];
+            
+            // Tạo full URL để kiểm tra
+            const fullUrl = (baseURL || '') + (config.url || '');
+            
+            // Kiểm tra xem endpoint có phải là public auth endpoint không
+            const isPublicAuthEndpoint = publicAuthEndpoints.some(endpoint => 
+                fullUrl.includes(endpoint) || config.url?.includes(endpoint)
+            );
+            
+            // Chỉ thêm token nếu không phải là public auth endpoint
+            if (!isPublicAuthEndpoint) {
+                const token = Cookies.get("accessToken");
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
             }
+            
             if (config.data instanceof FormData) {
                 delete config.headers['Content-Type'];
             }

@@ -99,6 +99,17 @@ export async function updateOrderStatus(id) {
     return data;
 }
 
+// Cancel order by user
+export const cancelOrder = async (orderId) => {
+    try {
+        const response = await api.put(`/cancel/${orderId}`);
+        return response.data;
+    } catch (error) {
+        console.error("Error cancelling order:", error);
+        throw new Error(error.response?.data?.message || "Failed to cancel order");
+    }
+};
+
 // Shop Owner Order APIs
 export const getShopOwnerOrders = async (status = null, pageNo = 1, pageSize = 10) => {
     try {

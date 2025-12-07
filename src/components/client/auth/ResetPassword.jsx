@@ -52,7 +52,14 @@ export default function ResetPassword() {
         if (!canSubmit) return;
         try {
             setLoading(true);
-            await updatePassword(email, pwd);
+            // Normalize email trước khi gửi để đảm bảo consistency với backend
+            const normalizedEmail = email?.trim().toLowerCase();
+            if (!normalizedEmail) {
+                setErr("Email is required.");
+                setLoading(false);
+                return;
+            }
+            await updatePassword(normalizedEmail, pwd);
             setMsg("Password updated successfully. Please sign in.");
             // Xóa email khỏi sessionStorage sau khi reset thành công
             sessionStorage.removeItem("resetPasswordEmail");

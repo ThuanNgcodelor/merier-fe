@@ -6,250 +6,185 @@ export default function Footer() {
 
   return (
     <footer style={{
-      background: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
-      borderTop: '1px solid rgba(255,255,255,0.2)',
-      marginTop: '80px'
+      background: 'white',
+      borderTop: '1px solid #f0f0f0',
+      marginTop: '40px'
     }}>
       {/* Main Footer Content */}
-      <div className="container py-5">
+      <div className="container py-5" style={{ maxWidth: '1200px' }}>
         <div className="row g-4">
+          {/* Customer Service Column */}
+          <div className="col-6 col-md-4 col-lg-2">
+            <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
+              CUSTOMER SERVICE
+            </h6>
+            <ul className="list-unstyled">
+              <li className="mb-2">
+                <Link
+                  to="/contact"
+                  style={{
+                    color: '#666',
+                    fontSize: '13px',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
+                >
+                  Shopee Help Center
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-          {/* Brand Column */}
-          <div className="col-12 col-md-6 col-lg-4">
-            <Link to="/" className="d-inline-block mb-3">
-              <img src="/assets/images/logo.png" alt="Logo" width="140" height="28" />
-            </Link>
-            <p style={{
-              color: 'rgba(255,255,255,0.9)',
-              fontSize: '14px',
-              lineHeight: '1.7',
-              marginBottom: '20px',
-              maxWidth: '320px'
-            }}>
-              Merier - Nền tảng thương mại điện tử hàng đầu, mang đến trải nghiệm mua sắm tuyệt vời cho khách hàng.
-            </p>
+          {/* Shopee Vietnam Column */}
+          <div className="col-6 col-md-4 col-lg-2">
+            <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
+              SHOPEE VIETNAM
+            </h6>
+            <ul className="list-unstyled">
+              <li className="mb-2">
+                <Link
+                  to="/about"
+                  style={{
+                    color: '#666',
+                    fontSize: '13px',
+                    textDecoration: 'none',
+                    transition: 'color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
+                >
+                  About Shopee
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-            {/* Social Icons */}
+          {/* Payment Column */}
+          <div className="col-6 col-md-4 col-lg-2">
+            <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
+              PAYMENT
+            </h6>
+            <div className="d-flex gap-2 flex-wrap">
+              <div style={{
+                width: '40px',
+                height: '24px',
+                background: '#f5f5f5',
+                borderRadius: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: '#666'
+              }}>
+                Visa
+              </div>
+              <div style={{
+                width: '40px',
+                height: '24px',
+                background: '#f5f5f5',
+                borderRadius: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: '#666'
+              }}>
+                MC
+              </div>
+              <div style={{
+                width: '40px',
+                height: '24px',
+                background: '#f5f5f5',
+                borderRadius: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: '#666'
+              }}>
+                JCB
+              </div>
+            </div>
+          </div>
+
+          {/* Follow Shopee Column */}
+          <div className="col-6 col-md-4 col-lg-2">
+            <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
+              FOLLOW SHOPEE
+            </h6>
             <div className="d-flex gap-2">
               <a
                 href="https://www.facebook.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="d-flex align-items-center justify-content-center"
                 style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.9)',
-                  color: '#f5576c',
-                  border: '1px solid rgba(255,255,255,0.3)',
-                  transition: 'all 0.2s',
-                  textDecoration: 'none'
+                  color: '#666',
+                  fontSize: '20px',
+                  textDecoration: 'none',
+                  transition: 'color 0.2s'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.color = '#f5576c';
-                  e.currentTarget.style.transform = 'scale(1.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.9)';
-                  e.currentTarget.style.color = '#f5576c';
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#ee4d2d'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#666'}
               >
                 <i className="fa fa-facebook"></i>
-              </a>
-              <a
-                href="https://www.linkedin.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: 'white',
-                  color: '#457B9D',
-                  border: '1px solid #E8ECEF',
-                  transition: 'all 0.2s',
-                  textDecoration: 'none'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#E63946';
-                  e.currentTarget.style.color = 'white';
-                  e.currentTarget.style.borderColor = '#E63946';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.color = '#457B9D';
-                  e.currentTarget.style.borderColor = '#E8ECEF';
-                }}
-              >
-                <i className="fa fa-linkedin"></i>
-              </a>
-              <a
-                href="https://www.twitter.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: 'white',
-                  color: '#457B9D',
-                  border: '1px solid #E8ECEF',
-                  transition: 'all 0.2s',
-                  textDecoration: 'none'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#E63946';
-                  e.currentTarget.style.color = 'white';
-                  e.currentTarget.style.borderColor = '#E63946';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.color = '#457B9D';
-                  e.currentTarget.style.borderColor = '#E8ECEF';
-                }}
-              >
-                <i className="fa fa-twitter"></i>
               </a>
             </div>
           </div>
 
-          {/* Ecommerce Column */}
-          <div className="col-6 col-md-6 col-lg-2">
-            <h6 className="fw-semibold mb-3" style={{ color: 'white', fontSize: '15px' }}>
-              Ecommerce
+          {/* Download App Column */}
+          <div className="col-6 col-md-4 col-lg-2">
+            <h6 className="fw-semibold mb-3" style={{ color: '#222', fontSize: '14px', fontWeight: 600 }}>
+              DOWNLOAD SHOPEE APP
             </h6>
-            <ul className="list-unstyled">
-              {[
-                { to: '/shop', label: 'Sản phẩm' },
-                { to: '/cart', label: 'Giỏ hàng' },
-                { to: '/information/orders', label: 'Đơn hàng' },
-                { to: '/information', label: 'Theo dõi' },
-                { to: '/shop-wishlist', label: 'Yêu thích' }
-              ].map((item, idx) => (
-                <li key={idx} className="mb-2">
-                  <Link
-                    to={item.to}
-                    style={{
-                      color: 'rgba(255,255,255,0.85)',
-                      fontSize: '14px',
-                      textDecoration: 'none',
-                      transition: 'color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Support Column */}
-          <div className="col-6 col-md-6 col-lg-3">
-            <h6 className="fw-semibold mb-3" style={{ color: 'white', fontSize: '15px' }}>
-              Hỗ trợ
-            </h6>
-            <ul className="list-unstyled">
-              {[
-                { to: '/contact', label: 'Trợ giúp' },
-                { to: '/contact', label: 'Chat trực tuyến' },
-                { to: '/shop', label: 'Chi tiết sản phẩm' },
-                { to: '/information', label: 'Theo dõi đơn hàng' }
-              ].map((item, idx) => (
-                <li key={idx} className="mb-2">
-                  <Link
-                    to={item.to}
-                    style={{
-                      color: 'rgba(255,255,255,0.85)',
-                      fontSize: '14px',
-                      textDecoration: 'none',
-                      transition: 'color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Products Column */}
-          <div className="col-6 col-md-6 col-lg-3">
-            <h6 className="fw-semibold mb-3" style={{ color: 'white', fontSize: '15px' }}>
-              Danh mục
-            </h6>
-            <ul className="list-unstyled">
-              {[
-                { to: '/shop?category=men', label: 'Nam' },
-                { to: '/shop?category=women', label: 'Nữ' },
-                { to: '/shop?category=kid', label: 'Trẻ em' },
-                { to: '/shop?category=jackets', label: 'Áo khoác' },
-                { to: '/shop', label: 'Khác' }
-              ].map((item, idx) => (
-                <li key={idx} className="mb-2">
-                  <Link
-                    to={item.to}
-                    style={{
-                      color: 'rgba(255,255,255,0.85)',
-                      fontSize: '14px',
-                      textDecoration: 'none',
-                      transition: 'color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'white'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.85)'}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="d-flex gap-2 flex-column">
+              <div style={{
+                width: '120px',
+                height: '36px',
+                background: '#f5f5f5',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                color: '#666'
+              }}>
+                App Store
+              </div>
+              <div style={{
+                width: '120px',
+                height: '36px',
+                background: '#f5f5f5',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '12px',
+                color: '#666'
+              }}>
+                Google Play
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Footer Bottom */}
       <div style={{
-        background: 'white',
-        borderTop: '1px solid #E8ECEF',
+        background: '#f5f5f5',
+        borderTop: '1px solid #f0f0f0',
         padding: '20px 0'
       }}>
-        <div className="container">
+        <div className="container" style={{ maxWidth: '1200px' }}>
           <div className="row align-items-center">
-            <div className="col-12 col-md-6 text-center text-md-start mb-3 mb-md-0">
-              <p className="mb-0" style={{ color: '#457B9D', fontSize: '14px' }}>
-                © {year} Merier. Made with <i className="fa fa-heart" style={{ color: '#E63946' }}></i> by{' '}
-                <a
-                  href="https://themeforest.net/user/codecarnival/portfolio"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    color: '#E63946',
-                    textDecoration: 'none',
-                    fontWeight: 500
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                  onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                >
-                  Codecarnival
-                </a>
+            <div className="col-12 text-center">
+              <p className="mb-0" style={{ color: '#666', fontSize: '12px' }}>
+                © {year} Shopee. All rights reserved.
               </p>
-            </div>
-            <div className="col-12 col-md-6 text-center text-md-end">
-              <Link to="/shop">
-                <img
-                  src="/assets/images/shop/payment.png"
-                  alt="Payment Methods"
-                  style={{ maxHeight: '30px', opacity: 0.8 }}
-                />
-              </Link>
             </div>
           </div>
         </div>
